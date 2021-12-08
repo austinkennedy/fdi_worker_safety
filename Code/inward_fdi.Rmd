@@ -1,0 +1,111 @@
+---
+title: "inward_fdi"
+author: "Austin Kennedy"
+date: "10/15/2021"
+output: html_document
+---
+
+```{r Clear environment}
+rm(list=ls())
+options(scipen=999)
+```
+
+```{r Packages}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+
+```
+
+```{r Load Data}
+df <- read.csv("../Input/us_inward_country.csv", nrows = 65, na.strings = "n.s.", check.names = FALSE)
+df <- df[,-2]
+colnames(df)[1] = "Country"
+df <- as_tibble(df)
+df <- df %>% mutate_at(c(2:42), as.numeric)
+```
+```{r Shares}
+total <- as.numeric(df[1,-1]) #total inward FDI
+countries <- df[,1] # -1 included to exclude country names for division
+df2 <- as.data.frame(t(t(df[,-1]) / total)) #Divide rows by total to get shares
+df2 <- df2 %>%
+  add_column(countries, .before = "1980") #Add country names
+```
+
+```{r Wide to Long}
+df2 %>% pivot_longer(!Country, names_to = 'Year', values_to = "US FDI Share")
+df <- df %>% pivot_longer(!Country, names_to = 'Year', values_to = "US inward FDI")
+names(df)[3] <- "fdi_inward"
+```
+```{r Match Country Workplace Injuries}
+require(dplyr)
+codes <- read.csv("../Input/alpha_3_country_codes.csv") #Country codes for workplace injuries data
+names(codes)[1] <- "Code"
+names(codes)[2] <- "Country"
+df <- merge(df, codes, by = "Country")
+country_safety <- read.csv("../Input/country_injury_rates.csv")
+names(country_safety)[1] <- "Code"
+country_safety <- country_safety %>%
+  rename(Year = time,
+         rate = obs_value) %>%
+  select(-c(obs_status, note_classif, note_indicator, note_source, source))#Rename and drop columns
+country_safety <- merge(country_safety, codes, by = "Code")
+country_safety <- country_safety %>% relocate(Country, .after = Code)
+  
+```
+
+
+```{r Country Worker Safety Plot}
+require(ggplot2)
+country_safety_agg <- country_safety[ which(country_safety$classif1 == "ECO_AGGREGATE_TOTAL"), ] #Only country totals, not by industry
+z <- country_safety_agg[ which(country_safety_agg$Year == 2015), ]
+z$color <- ifelse(z$Country == "United States", 2, 1)
+
+p <- ggplot(z, aes(x = reorder(Country,-rate), y = rate, fill = color)) +
+  geom_bar(stat="identity", width = 0.8) +
+  coord_flip() +
+  theme_minimal() +
+  theme(aspect.ratio = 2/3,
+        axis.text.y = element_text(size=11),
+        axis.text.x = element_text(size=14),
+        axis.title = element_text(size = 16, face="bold"),
+        legend.position ="none",
+        plot.title = element_text(size = 16, face = "bold", hjust = 0.5)) +
+  labs(title="Worker Safety by Country, 2015",
+       y = "Nonfatal workplace injuries per 100,000 workers",
+       x = "Country")
+
+ggsave("../Output/workplace_injuries.pdf", width = 15, height = 15)
+p
+```
+
+```{r Merge}
+x <- select(country_safety_agg, c("Code","Year","rate"))
+df <- merge(df,x, by=c("Code","Year"))
+```
+```{r Scatter}
+ggplot(df, aes(x=fdi_inward, y=rate)) +
+  geom_point(color="navy",shape=18) +
+  geom_smooth(method='lm', se=F, color="red") +
+  ylim(0,10000) +
+  theme(plot.title = element_text(face="bold", hjust=0.5)) + 
+  labs(title="Source Country Worker Safety and Investment into the U.S.",
+       x = "U.S. Inward FDI Position, In Millions of USD",
+       y = "Nonfatal Workplace Injuries per 100,000 workers")
+ggsave("../Output/scatter_fdi_injury.pdf")
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
