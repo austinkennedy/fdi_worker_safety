@@ -1,0 +1,9 @@
+---
+title: "clean_data"
+author: "Austin Kennedy"
+date: "1/12/2022"
+output: html_document
+---
+
+```{r Clear memory and setup}
+```

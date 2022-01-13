@@ -92,7 +92,7 @@ ggplot(df, aes(x=fdi_inward, y=rate)) +
   labs(title="Source Country Worker Safety and Investment into the U.S.",
        x = "U.S. Inward FDI Position, In Millions of USD",
        y = "Nonfatal Workplace Injuries per 100,000 workers")
-ggsave("../Output/scatter_fdi_injury.pdf")
+#ggsave("../Output/scatter_fdi_injury.pdf")
   
 ```
 
