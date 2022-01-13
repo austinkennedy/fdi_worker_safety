@@ -1,0 +1,37 @@
+2002-2011 ODI Data
+=================================
+SURVEYSTATUS  == Data Reliability
+ESTAB_NAME   == Establishment name
+ESTAB_NAME2  == Secondary establishment name
+STREET  == Street address
+CITY  == City
+STATE  == State
+ZIP  == Zip code
+Year  == Calendar year of the data
+SIC  == Standard Industrial Classification
+NAICS == North American Industry Classification System
+PHONE == Telephone number
+EMP_Q1       == average number of employees
+HOURS_Q2     == average number of working hours 
+UNUSUAL_Q3   == Nothing unusual happened
+STRIKE_Q3    == Strike or lockout
+SHUT_Q3      == Shutdown or layoff
+SEASONAL_Q3  == Seasonal work
+DISASTER_Q3  == Natural disastter or adverse weather conditions
+SHORT_Q3     == Shorter work schedules or fewer pay period than usual
+LONG_Q3      == Longer work schedules or more pay period than usual
+OREASON_Q3   == Other reasons
+OREASON_DESC == Other reasons description
+INJILL_Q4    == Occupational injury or illness happened (1=Yes)
+DEATHS_G     == Number of deaths (column G)
+CAWAY_H      == Number of cases with days away from work (column H)
+CTRANSFER_I  == Number of cases with job transfer or restriction (column I)
+COTHER_J     == Number of other recordable case (column J)
+DTRANSFER_K  == Number of days away from work (column K)
+DAWAY_L      == Number of days of job transfer or restriction (column L)
+INJ_M1       == Injuries
+SKIN_M2      == Skin disorders
+RESP_M3      == Respiratory conditions
+POIS_M4      == Poisonings
+OTHER_M5     == All other illnesses
+HEARING_M    == Hearing loss

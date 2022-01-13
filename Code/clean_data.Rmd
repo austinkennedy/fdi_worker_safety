@@ -16,6 +16,40 @@ library(dplyr)
 ```
 
 ```{r Load Data}
-odi1 = read.csv("../Input/ODI/ODI_1996-2001.csv")
-odi2 = read.csv("../Input/ODI/ODI_2002-2011.csv")
+odi1 <- read.csv("../Input/ODI/ODI_1996-2001.csv")
+odi2 <- read.csv("../Input/ODI/ODI_2002-2011.csv")
 ```
+
+```{r Change variable names to match}
+odi1 <- odi1 %>% rename(EMP_Q1 = Q1,
+                        HOURS_Q2 = Q2,
+                        UNUSUAL_Q3 = Q3A,
+                        STRIKE_Q3 = Q3B,
+                        SHUT_Q3 = Q3C,
+                        SEASONAL_Q3 = Q3D,
+                        DISASTER_Q3 = Q3E,
+                        SHORT_Q3 = Q3F,
+                        LONG_Q3 = Q3G,
+                        OREASON_Q3 = Q3H,
+                        )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,43 @@
+1996-2001 ODI Data
+===================================
+SURVEYSTATUS  == Data Reliability
+ESTAB_NAME   == Establishment name
+ESTAB_NAME2  == Secondary establishment name
+STREET  == Street address
+CITY  == City
+STATE  == State
+ZIP  == Zip code
+Year  == Calendar year of the data
+SIC  == Standard Industrial Classification
+PHONE == Telephone number
+Q1  == average number of employees
+Q2  == average number of working hours
+Q3A == Nothing unusual happened
+Q3B == Strike or lockout
+Q3C == Shutdown or layoff
+Q3D == Seasonal work
+Q3E == Natural disastter 
+Q3F == Shorter work schedules 
+Q3G == Longer work schedules
+Q3H == Other reasons
+Q4Y == Yes to injury or illness happened
+Q4N == No to injury or illness happened
+C1  == Total InjuriesDeaths as a result of injury
+C2  == Injuries with days away from work or restricted workdays or both
+C3  == Injuries with days away from work 
+C4  == Total days away from work
+C5  == Total days of restricted work activity
+C6  == Injuries without lost workdays
+C7A == Skin diseases or disorders
+C7B == Dust diseases of the lungs
+C7C == Respiratory conditions due to toxic agents
+C7D == Poisoning
+C7E == Disorders due to physical agents
+C7F == Disorders associated with repeated trauma
+C7G == Other occupational illnesses
+C8  == Deaths as a result of illness
+C9  == Illnesses with days away from work or restricted workdays or both
+C10 == Illnesses with days away from work
+C11 == Total days away from work
+C12 == Total days of restricted work activity
+C13 == Illnesses without lost workdays
