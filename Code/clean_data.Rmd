@@ -18,6 +18,7 @@ library(tidyverse)
 # odi1 <- read.csv("../Input/ODI/ODI_1996-2001.csv")
 # odi2 <- read.csv("../Input/ODI/ODI_2002-2011.csv")
 odi <- read.csv("../Input/ODI/ODI_2002-2011.csv")
+fdi <- read.csv("../Input/us_inward_country.csv", nrows = 65, na.strings = "n.s.", check.names = FALSE)
 ```
 
 # ```{r Change variable names to match}
@@ -34,7 +35,15 @@ odi <- read.csv("../Input/ODI/ODI_2002-2011.csv")
 #                         )
 # ```
 
-```{r Create IDs}
+```{r Clean FDI data}
+fdi <- fdi[,-2] #Second column is the same as the first, but with spacing
+colnames(fdi)[1] = "Country"
+fdi <- as_tibble(fdi) 
+fdi <- fdi %>% mutate_at(c(2:42), as.numeric)
+```
+
+
+```{r Create Plant IDs}
 #Using street addresses because want to identify individual plants instead of firms
 odi <- odi %>%
   group_by(STREET) %>%

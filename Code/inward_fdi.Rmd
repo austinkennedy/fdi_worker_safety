@@ -12,9 +12,6 @@ options(scipen=999)
 
 ```{r Packages}
 library(tidyverse)
-library(ggplot2)
-library(dplyr)
-
 ```
 
 ```{r Load Data}
@@ -83,6 +80,7 @@ p
 x <- select(country_safety_agg, c("Code","Year","rate"))
 df <- merge(df,x, by=c("Code","Year"))
 ```
+
 ```{r Scatter}
 ggplot(df, aes(x=fdi_inward, y=rate)) +
   geom_point(color="navy",shape=18) +
