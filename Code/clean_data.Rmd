@@ -12,6 +12,7 @@ options(scipen=999)
 
 ```{r Load Packages}
 library(tidyverse)
+library(dplyr)
 ```
 
 ```{r Load Data}
@@ -39,7 +40,12 @@ fdi <- read.csv("../Input/fdi_country_industry.csv", nrows = 67, na.strings = "n
 ```{r Clean FDI data}
 # fdi <- fdi[,-2] #Second column is the same as the first, but with spacing
 colnames(fdi)[1] = "Country"
-fdi$Country <- trimws(fdi$Country)
+fdi <- fdi[rowSums(is.na(fdi)) != (ncol(fdi)-1),] #take out rows that have all NAs
+fdi$Country <- trimws(fdi$Country) #Remove whitespace
+fdi <- fdi[!(fdi$Country %in% c("Addenda:", "Other")),]  #Remove rows that aren't useful
+fdi[fdi == "(D)"] <- NA #(D) represents confidential values in the source data
+fdi[fdi == "(*)"] <- 0 #(*) represents close to zero in the source data
+
 # fdi <- as_tibble(fdi) 
 # fdi <- fdi %>% mutate_at(c(2:42), as.numeric)
 ```
