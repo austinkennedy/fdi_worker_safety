@@ -58,14 +58,16 @@ insertRow <- function(existingDF, newrow, r) {
 fdi <- insertRow(fdi, industries, 1) #Insert colnames as a row to not be lost
 colnames(fdi) <- years #Change col names to years for wide to long transition
 
-#Wide to long
-fdi <- fdi %>% pivot_longer()
-# library(miscTools)
-# fdi <- insertRow(fdi, 1, industries)
+fdi <- t(fdi) #transpose
+#Change col names to countries
+countries <- fdi[1,] 
+colnames(fdi) <- countries
+fdi <- fdi[-1,]
 
-
-# fdi <- as_tibble(fdi) 
-# fdi <- fdi %>% mutate_at(c(2:42), as.numeric)
+colnames(fdi)[1:3] = c("2digit", "3digit", "Year")
+rownames(fdi) <- NULL
+fdi <- as.tibble(fdi)
+fdi <- fdi %>% pivot_longer(-c("2digit", "3digit", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
 ```
 
 
@@ -79,7 +81,8 @@ odi <- odi %>%
 length(unique(odi[["ID"]]))
 ```
 
-```{r }
+```{r Test code}
+
 ```
 
 
