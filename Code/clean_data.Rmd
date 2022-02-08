@@ -12,7 +12,6 @@ options(scipen=999)
 
 ```{r Load Packages}
 library(tidyverse)
-library(dplyr)
 ```
 
 ```{r Load Data}
@@ -45,6 +44,11 @@ fdi$Country <- trimws(fdi$Country) #Remove whitespace
 fdi <- fdi[!(fdi$Country %in% c("Addenda:", "Other")),]  #Remove rows that aren't useful
 fdi[fdi == "(D)"] <- NA #(D) represents confidential values in the source data
 fdi[fdi == "(*)"] <- 0 #(*) represents close to zero in the source data
+
+years <- as.numeric(fdi[2,])
+industries <- colnames(fdi)
+add_row(fdi, industries, .before=1)
+colnames(fdi) <- years
 
 # fdi <- as_tibble(fdi) 
 # fdi <- fdi %>% mutate_at(c(2:42), as.numeric)
