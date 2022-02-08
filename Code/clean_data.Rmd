@@ -47,8 +47,22 @@ fdi[fdi == "(*)"] <- 0 #(*) represents close to zero in the source data
 
 years <- as.numeric(fdi[2,])
 industries <- colnames(fdi)
-add_row(fdi, industries, .before=1)
-colnames(fdi) <- years
+
+#Function to insert row
+insertRow <- function(existingDF, newrow, r) {
+  existingDF[seq(r+1,nrow(existingDF)+1),] <- existingDF[seq(r,nrow(existingDF)),]
+  existingDF[r,] <- newrow
+  existingDF
+}
+
+fdi <- insertRow(fdi, industries, 1) #Insert colnames as a row to not be lost
+colnames(fdi) <- years #Change col names to years for wide to long transition
+
+#Wide to long
+fdi <- fdi %>% pivot_longer()
+# library(miscTools)
+# fdi <- insertRow(fdi, 1, industries)
+
 
 # fdi <- as_tibble(fdi) 
 # fdi <- fdi %>% mutate_at(c(2:42), as.numeric)
