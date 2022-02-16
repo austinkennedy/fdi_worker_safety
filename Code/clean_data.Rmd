@@ -64,10 +64,19 @@ countries <- fdi[1,]
 colnames(fdi) <- countries
 fdi <- fdi[-1,]
 
-colnames(fdi)[1:3] = c("2digit", "3digit", "Year")
+colnames(fdi)[1:3] = c("title_2", "title_3", "Year")
 rownames(fdi) <- NULL
 fdi <- as.tibble(fdi)
-fdi <- fdi %>% pivot_longer(-c("2digit", "3digit", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+fdi <- fdi %>% pivot_longer(-c("title_2", "title_3", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+```
+
+```{r Match NAICS codes to fdi industries}
+naics <- read.csv("../Input/naics07.csv")
+naics <- naics[-1,-1]
+colnames(naics) <- c("code", "title_3")
+naics <- as_tibble(naics)
+naics <- subset(naics, nchar(naics$code) == 3)
+new <- merge(fdi, naics, by = "title_3")
 ```
 
 
