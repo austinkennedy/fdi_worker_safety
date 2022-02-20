@@ -75,8 +75,22 @@ naics <- read.csv("../Input/naics07.csv")
 naics <- naics[-1,-1]
 colnames(naics) <- c("code", "title_3")
 naics <- as_tibble(naics)
-naics <- subset(naics, nchar(naics$code) == 3)
-new <- merge(fdi, naics, by = "title_3")
+naics <- subset(naics, nchar(naics$code) <= 3)
+# new <- merge(fdi, naics, by = "title_3")
+
+library(fuzzyjoin)
+new <- stringdist_join(fdi, naics,
+                by = "title_3",
+                mode = "left",
+                ignore_case = TRUE,
+                method = "jw",
+                max_dist = 99,
+                distance_col = "dist") %>%
+  group_by(title_3.x) %>%
+  slice_min(order_by = dist, n = 1)
+
+uni <- distinct(new, title_3.x, title_3.y)
+view(uni)
 ```
 
 
@@ -91,7 +105,7 @@ length(unique(odi[["ID"]]))
 ```
 
 ```{r Test code}
-
+uni <- distinct(new, title_3.x, title_3.y)
 ```
 
 
