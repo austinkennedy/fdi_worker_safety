@@ -101,8 +101,17 @@ uni <- uni %>% mutate(industry = case_when(title_3.x == "All Industries Total" ~
                                            TRUE ~ title_3.y))
 uni <- merge(uni, naics, by.x = "industry", by.y = "title_3")
 fdi <- merge(fdi, uni[, c("code.y","title_3.x")], by.x = "title_3", by.y = "title_3.x", all.x = TRUE)
-
+fdi <- rename(fdi, code = code.y)
+fdi <- fdi[, c("title_2", "title_3", "code", "Year", "Country", "fdi")]
 ```
+
+```{r Merge FDI and firm data}
+#Create two and three digit naics for each firm
+odi <- odi %>%
+  mutate(naics_2 = as.numeric(substr(NAICS, 1, 2)),
+         naics_3 = as.numeric(substr(NAICS, 1, 3)))
+```
+
 
 
 ```{r Create Plant IDs}
