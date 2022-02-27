@@ -128,7 +128,9 @@ merge_1 <- merge_1 %>% mutate(tcr = (INJ_M1*200000) / HOURS_Q2,
 merge_1 <- rename(merge_1, fdi_total = `All Countries Total`)
 merge_1$fdi_total <- as.numeric(merge_1$fdi_total)
 model_1 <- feols(tcr ~ fdi_total, merge_1)
-model_2 <- feols(tcr ~ fdi_total|STREET + Year, merge_1) 
+model_2 <- feols(tcr ~ fdi_total|STREET + Year, merge_1)
+model_3 <- feols(log(tcr) ~ log(fdi_total)|STREET + Year, merge_1)
+summary(model_3)
     ```
 
 ```{r Scatterplot}
