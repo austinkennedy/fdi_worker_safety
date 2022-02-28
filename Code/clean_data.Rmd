@@ -162,6 +162,10 @@ match <- stringdist_join(fdi_ind, naics, #fuzzy matching
 match <- distinct(match, industry.x, industry.y, .keep_all = TRUE)
 match <- match %>% filter(dist < 0.25)
 
+fdi_ind_matched <- merge(fdi_ind, match[, c("code", "industry.x", "industry.y")], by.x = "industry", by.y = "industry.x")
+
+
+
 #Uncomment to check how well matching did
   
 # unmatched <- match %>% filter(dist > 0.05) %>% select(industry.x, industry.y, dist)
