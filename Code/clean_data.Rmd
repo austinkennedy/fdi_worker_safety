@@ -18,7 +18,7 @@ library(tidyverse)
 # odi1 <- read.csv("../Input/ODI/ODI_1996-2001.csv")
 # odi2 <- read.csv("../Input/ODI/ODI_2002-2011.csv")
 odi <- read.csv("../Input/ODI/ODI_2002-2011.csv")
-fdi <- read.csv("../Input/fdi_country_industry.csv", nrows = 67, na.strings = "n.s.", check.names = FALSE)
+fdi <- read.csv("../Input/fdi/fdi_country_industry.csv", nrows = 67, na.strings = "n.s.", check.names = FALSE)
 #fdi <- read.csv("../Input/us_inward_country.csv", nrows = 65, na.strings = "n.s.", check.names = FALSE)
 ```
 
@@ -132,6 +132,66 @@ model_2 <- feols(tcr ~ fdi_total|STREET + Year, merge_1)
 model_3 <- feols(log(tcr) ~ log(fdi_total)|STREET + Year, merge_1)
 summary(model_3)
     ```
+
+```{r Import industry-only fdi data}
+fdi_ind <- read.csv("../Input/fdi/fdi_total_industry.csv", na.strings = "n.s.", check.names = FALSE)
+```
+
+```{r Clean industry fdi data}
+# fdi <- fdi[,-2] #Second column is the same as the first, but with spacing
+colnames(fdi_ind)[1] <- "industry"
+fdi_ind <- fdi_ind[rowSums(is.na(fdi_ind)) != (ncol(fdi_ind)-1),] #take out rows that have all NAs
+fdi_ind$industry <- trimws(fdi_ind$industry) #Remove whitespace
+fdi_ind <- fdi_ind[!(fdi_ind$industry %in% c("Addendum:", "Other")),]  #Remove rows that aren't useful
+fdi_ind[fdi_ind == "(D)"] <- NA #(D) represents confidential values in the source data
+fdi_ind[fdi_ind == "(*)"] <- 0 #(*) represents close to zero in the source data
+
+fdi_ind <- fdi_ind %>% pivot_longer(!industry, names_to = "year", values_to = "fdi")
+naics <- rename(naics, industry = title_3)
+#Match industries to NAICS codes
+match <- stringdist_join(fdi_ind, naics, #fuzzy matching
+                    by = "industry",
+                    mode = "left",
+                    ignore_case = TRUE,
+                    method = "jw",
+                    max_dist = 99,
+                    distance_col = "dist") %>%
+  group_by(industry.x) %>%
+  slice_min(order_by = dist, n = 1)
+
+match <- distinct(match, industry.x, industry.y, .keep_all = TRUE)
+match <- match %>% filter(dist < 0.25)
+
+#Uncomment to check how well matching did
+  
+# unmatched <- match %>% filter(dist > 0.05) %>% select(industry.x, industry.y, dist)
+# unmatched <- distinct(unmatched, industry.x, industry.y, .keep_all = TRUE)
+# unmatched <- unmatched %>% filter(dist < 0.25) %>% select(industry.x, industry.y, dist)
+
+# years <- as.numeric(fdi_ind[2,])
+# industries <- colnames(fdi_ind)
+# 
+# #Function to insert row
+# insertRow <- function(existingDF, newrow, r) {
+#   existingDF[seq(r+1,nrow(existingDF)+1),] <- existingDF[seq(r,nrow(existingDF)),]
+#   existingDF[r,] <- newrow
+#   existingDF
+# }
+# 
+# fdi_ind <- insertRow(fdi_ind, industries, 1) #Insert colnames as a row to not be lost
+# colnames(fdi_ind) <- years #Change col names to years for wide to long transition
+# 
+# fdi_ind <- t(fdi_ind) #transpose
+# #Change col names to countries
+# countries <- fdi_ind[1,] 
+# colnames(fdi_ind) <- countries
+# fdi_ind <- fdi_ind[-1,]
+# 
+# colnames(fdi_ind)[1:3] = c("title_2", "title_3", "Year")
+# rownames(fdi_ind) <- NULL
+# fdi_ind <- as_tibble(fdi_ind)
+# fdi <- fdi %>% pivot_longer(-c("title_2", "title_3", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+```
 
 ```{r Scatterplot}
 ggplot(merge_1, aes(x=fdi_total, y=tcr)) +
