@@ -1,5 +1,5 @@
 ---
-title: "inward_fdi"
+title: "country_safety"
 author: "Austin Kennedy"
 date: "10/15/2021"
 output: html_document
@@ -94,7 +94,9 @@ ggplot(df, aes(x=fdi_inward, y=rate)) +
   
 ```
 
-
+```{r Export}
+write.csv(country_safety_agg, "../Temporary/country_safety.csv", row.names = FALSE)
+```
 
 
 

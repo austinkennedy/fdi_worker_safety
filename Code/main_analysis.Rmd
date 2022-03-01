@@ -6,4 +6,24 @@ output: html_document
 ---
 
 ```{r Clear memory and setup}
+rm(list=ls())
+options(scipen=999)
+```
+
+```{r Load Packages}
+library(tidyverse)
+library(fixest)
+```
+
+```{r Load Data}
+odi_ind <- read.csv("../Temporary/odi_fdi.csv")
+```
+
+```{r Regressions}
+mod1 <- feols(log(tcr) ~ log(fdi), odi_matched)
+mod2 <- feols(log(tcr) ~ log(fdi)|Year, odi_matched)
+mod3 <- feols(log(tcr) ~ log(fdi)|Year + STREET, odi_matched)
+mod4 <- feols(tcr ~ log(fdi), odi_matched)
+mod5 <- feols(tcr ~ log(fdi)|industry, odi_matched)
+etable(mod1, mod2, mod3, mod4, mod5)
 ```

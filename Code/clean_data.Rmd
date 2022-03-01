@@ -195,23 +195,26 @@ odi_matched <- odi_matched %>% mutate(tcr = (INJ_M1*200000) / HOURS_Q2,
                               .before = "EMP_Q1")
 
 odi_matched$fdi <- as.numeric(odi_matched$fdi)
+```
+
+```{r Export matched odi data}
+#write.csv(odi_matched, "../Temporary/odi_fdi.csv", row.names = FALSE)
+```
+
+```{r Import country safety data}
+country_safety <- read.csv("../Temporary/country_safety.csv")
+```
+
+```{r Safe/Unsafe}
+#Make country-level fdi data as long as possible
+fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+#Convert country safety to per 100 instead of 100,000 for comparisons
+country_safety$rate <- country_safety$rate / 1000
+
+fdi_safety <- merge(fdi, country_safety[,c("rate","Country", "Year")], by = c("Country", "Year"))
 
 ```
 
-```{r basic regs}
-mod1 <- feols(log(tcr) ~ log(fdi), odi_matched)
-mod2 <- feols(log(tcr) ~ log(fdi)|Year, odi_matched)
-mod3 <- feols(log(tcr) ~ log(fdi)|Year + STREET, odi_matched)
-mod4 <- feols(tcr ~ log(fdi), odi_matched)
-mod5 <- feols(tcr ~ log(fdi)|STREET, odi_matched)
-etable(mod1, mod2, mod3, mod4, mod5)
-```
-
-```{r Scatterplot}
-ggplot(merge_1, aes(x=fdi_total, y=tcr)) +
-  geom_point() +
-  geom_smooth(method = lm, se = FALSE)
-```
 
 ```{r Fuzzy matching if data is long}
 # naics <- read.csv("../Input/naics07.csv")
