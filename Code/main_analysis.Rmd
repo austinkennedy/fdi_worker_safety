@@ -40,11 +40,15 @@ cm <- c("asinh(fdi)" = "$FDI^{total}$", "asinh(fdi_safe_us)" = "$FDI^{safe}$", "
 
 cap <- "Dependent variable: Total Case Rate (TCR)"
 
-fn <- "Time fixed effects are included in all specifications. All independent variables are the inverse hyperbolic sine of the inward FDI position in the industry. The columns United States, Industry, and Firm represent different thresholds used to determine whether FDI is coming from safe or unsafe sources. Robust standard errors reported."
+fn <- "Time fixed effects are included in all specifications. All independent variables are the inverse hyperbolic sine of the inward FDI position in the industry. The columns United States, Industry, and Plant represent different thresholds used to determine whether FDI is coming from safe or unsafe sources. Robust standard errors are clustered at the industry-year level."
 
 gm <- tribble(~raw, ~clean, ~fmt,
-              "FE: naics_3", "Industry FE", ~fmt,
-              "FE: industry", "Industry FE", ~fmt)
+              "FE: naics_3", "Industry FE", "%.4f",
+              "FE: industry", "Industry FE", "%.4f",
+              "nobs", "Observations", "%.0f",
+              "r.squared", "R2", "%.2f")
+
+
 
 tab <- modelsummary(models,
              stars = TRUE,
@@ -54,8 +58,9 @@ tab <- modelsummary(models,
              gof_map = gm,
              coef_omit = "Intercept",
              output = "latex",
-             escape = FALSE) %>%
-  add_header_above(c(" " = 3, "United States" = 2, "Industry" = 2, "Firm" = 2)) %>%
+             escape = FALSE,
+             fmt = "%.4f") %>%
+  add_header_above(c(" " = 3, "United States" = 2, "Industry" = 2, "Plant" = 2)) %>%
   add_footnote(fn, threeparttable = TRUE)
 
 kableExtra::save_kable(tab, file = "../Output/table1.tex")
