@@ -208,11 +208,36 @@ merge_1 <- merge(odi, fdi_safety, by.x = c("Year","naics_3"), by.y = c("Year","c
 #Create new var with avg worker injuries by industry and year
 merge_1 <- merge_1 %>%
   group_by(naics_3, Year) %>%
-  mutate(ind_avg = mean(tcr))
+  mutate(inj_ind = mean(tcr))
 
-merge_1 <- merge_1 %>% 
+#Create new var with US safety rate by year
+
+us_safety <- country_safety %>%
+  filter(Country == "United States")
+
+merge_1 <- merge(merge_1, us_safety[, c("rate", "Year")], by = "Year")
+
+merge_1 <- rename(merge_1, inj_us = rate.y)
+merge_1 <- rename(merge_1, inj_foreign = rate.x)
+merge_1$fdi <- as.numeric(merge_1$fdi)
+
+#Find safe and unsafe fdi
+merge_2 <- merge_1 %>% 
   group_by(STREET, Year) %>%
-  summarize(fdi_safe = sum)
+  summarize(fdi_safe_us = sum(fdi[which(inj_foreign <= inj_us)], na.rm = TRUE),
+            fdi_unsafe_us = sum(fdi[which(inj_foreign > inj_us)], na.rm = TRUE),
+            fdi_safe_ind = sum(fdi[which(inj_foreign <= inj_ind)], na.rm = TRUE),
+            fdi_unsafe_ind = sum(fdi[which(inj_foreign > inj_ind)], na.rm = TRUE),
+            fdi_safe_plant = sum(fdi[which(inj_foreign <= tcr)], na.rm = TRUE),
+            fdi_unsafe_plant = sum(fdi[which(inj_foreign > tcr)], na.rm = TRUE)
+            )
+
+#merge odi and safe/unsafe
+odi_final <- merge(odi, merge_2, by = c("STREET", "Year"))
+```
+
+```{r Export ODI final}
+write.csv(odi_final, "../Temporary/odi_fdi_safety.csv", row.names = FALSE)
 ```
 
 

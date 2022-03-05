@@ -13,17 +13,99 @@ options(scipen=999)
 ```{r Load Packages}
 library(tidyverse)
 library(fixest)
+library(modelsummary)
+library(kableExtra)
 ```
 
 ```{r Load Data}
 odi_ind <- read.csv("../Temporary/odi_fdi.csv")
+odi_fdi_safety <- read.csv("../Temporary/odi_fdi_safety.csv")
 ```
 
 ```{r Regressions}
-mod1 <- feols(log(tcr) ~ log(fdi), odi_matched)
-mod2 <- feols(log(tcr) ~ log(fdi)|Year, odi_matched)
-mod3 <- feols(log(tcr) ~ log(fdi)|Year + STREET, odi_matched)
-mod4 <- feols(tcr ~ log(fdi), odi_matched)
-mod5 <- feols(tcr ~ log(fdi)|industry, odi_matched)
-etable(mod1, mod2, mod3, mod4, mod5)
+mod1 <- feols(tcr ~ asinh(fdi)|Year, odi_ind, vcov = "twoway")
+mod2 <- feols(tcr ~ asinh(fdi)|Year + industry, odi_ind, vcov = "twoway")
+mod3 <- feols(tcr ~ asinh(fdi_safe_us) + asinh(fdi_unsafe_us)|Year, odi_fdi_safety, vcov = "twoway")
+mod4 <- feols(tcr ~ asinh(fdi_safe_us) + asinh(fdi_unsafe_us)|Year + naics_3, odi_fdi_safety, vcov = "twoway")
+mod5 <- feols(tcr ~ asinh(fdi_safe_ind) + asinh(fdi_unsafe_ind)|Year, odi_fdi_safety, vcov = "twoway")
+mod6 <- feols(tcr ~ asinh(fdi_safe_ind) + asinh(fdi_unsafe_ind)|Year + naics_3, odi_fdi_safety, vcov = "twoway")
+mod7 <- feols(tcr ~ asinh(fdi_safe_plant) + asinh(fdi_unsafe_plant)|Year, odi_fdi_safety, vcov = "twoway")
+mod8 <- feols(tcr ~ asinh(fdi_safe_plant) + asinh(fdi_unsafe_plant)|Year + naics_3, odi_fdi_safety, vcov = "twoway")
+
+models <- list(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8)
 ```
+
+```{r Table 2}
+cm <- c("asinh(fdi)" = "$FDI^{total}$", "asinh(fdi_safe_us)" = "$FDI^{safe}$", "asinh(fdi_unsafe_us)" = "$FDI^{unsafe}$", "asinh(fdi_safe_ind)" = "$FDI^{safe}$", "asinh(fdi_unsafe_ind)" = "$FDI^{unsafe}$", "asinh(fdi_safe_plant)" = "$FDI^{safe}$", "asinh(fdi_unsafe_plant)" = "$FDI^{unsafe}$")
+
+cap <- "Dependent variable: Total Case Rate (TCR)"
+
+fn <- "Time fixed effects are included in all specifications. All independent variables are the inverse hyperbolic sine of the inward FDI position in the industry. The columns United States, Industry, and Firm represent different thresholds used to determine whether FDI is coming from safe or unsafe sources. Robust standard errors reported."
+
+gm <- tribble(~raw, ~clean, ~fmt,
+              "FE: naics_3", "Industry FE", ~fmt,
+              "FE: industry", "Industry FE", ~fmt)
+
+tab <- modelsummary(models,
+             stars = TRUE,
+             coef_map = cm,
+             title = cap,
+             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std|Year",
+             gof_map = gm,
+             coef_omit = "Intercept",
+             output = "latex",
+             escape = FALSE) %>%
+  add_header_above(c(" " = 3, "United States" = 2, "Industry" = 2, "Firm" = 2)) %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(tab, file = "../Output/table1.tex")
+
+# modelsummary(models,
+#              stars = TRUE,
+#              gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+#              output = "latex")
+```
+
+
+```{r Create future columns}
+ti <- data.frame(
+  term = c("log(fdi^s)", "log(fdi^u)"),
+  estimate = c("-","+"),
+  std.error = c(" ", " ")
+)
+
+gl <- data.frame(
+  TimeFE = "Yes",
+  IndustryFE = "Yes"
+)
+
+mod <- list(
+  tidy = ti,
+  glance = gl
+)
+
+class(mod) <- "modelsummary_list"
+modelsummary(mod, output = "markdown")
+```
+
+
+
+
+
+
+```{r Test code}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
