@@ -70,31 +70,18 @@ kableExtra::save_kable(tab, file = "../Output/table1.tex")
 #              gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
 #              output = "latex")
 ```
+```{r Scatter Plots}
+scatter_us <- ggplot(odi_fdi_safety, aes(x = fdi_unsafe_us, y = tcr)) + geom_point() + ylim(0,300) + geom_smooth(method = "lm")
 
+scatter_ind <- ggplot(odi_fdi_safety, aes(x = fdi_unsafe_ind, y = tcr)) + geom_point() + ylim(0,300) + geom_smooth(method = "lm")
 
-```{r Create future columns}
-ti <- data.frame(
-  term = c("log(fdi^s)", "log(fdi^u)"),
-  estimate = c("-","+"),
-  std.error = c(" ", " ")
-)
+scatter_u_plant <- ggplot(odi_fdi_safety, aes(x = fdi_unsafe_plant, y = tcr)) + geom_point() + ylim(0,100) + xlim(0,100000) + geom_smooth(method = "lm")
 
-gl <- data.frame(
-  TimeFE = "Yes",
-  IndustryFE = "Yes"
-)
+scatter_s_plant <- ggplot(odi_fdi_safety, aes(x = fdi_safe_plant, y = tcr)) + geom_point(size = 1) + geom_point(aes(fdi_unsafe_plant, tcr), color = "red", size = 1) +  ylim(0,100) + xlim(0,100000) + geom_smooth(method = "lm")
 
-mod <- list(
-  tidy = ti,
-  glance = gl
-)
-
-class(mod) <- "modelsummary_list"
-modelsummary(mod, output = "markdown")
+# scatter_fdi <- ggplot(odi_ind, aes(x = fdi, y = tcr)) + geom_point(position = "dodge") + ylim(0,100) + xlim(0,100000) + geom_smooth(method = "lm")
+show(scatter_s_plant)
 ```
-
-
-
 
 
 
