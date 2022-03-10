@@ -15,6 +15,7 @@ library(tidyverse)
 library(fixest)
 library(modelsummary)
 library(kableExtra)
+library(lubridate)
 ```
 
 ```{r Load Data}
@@ -80,12 +81,26 @@ scatter_u_plant <- ggplot(odi_fdi_safety, aes(x = fdi_unsafe_plant, y = tcr)) + 
 scatter_s_plant <- ggplot(odi_fdi_safety, aes(x = fdi_safe_plant, y = tcr)) + geom_point(size = 1) + geom_point(aes(fdi_unsafe_plant, tcr), color = "red", size = 1) +  ylim(0,100) + xlim(0,100000) + geom_smooth(method = "lm")
 
 # scatter_fdi <- ggplot(odi_ind, aes(x = fdi, y = tcr)) + geom_point(position = "dodge") + ylim(0,100) + xlim(0,100000) + geom_smooth(method = "lm")
+
 show(scatter_s_plant)
 ```
 
 
 
 ```{r Test code}
+int_breaks <- function(x, n = 5) {
+  l <- pretty(x, n)
+  l[abs(l %% 1) < .Machine$double.eps ^ 0.5] 
+}
+
+test <- odi_ind %>%
+  group_by(Year) %>%
+  summarise(
+    inj = mean(tcr, na.rm = TRUE),
+    fdi = mean(fdi, na.rm=TRUE)
+  )
+
+ggplot(test, aes(x = Year, y = fdi)) + geom_smooth(se=FALSE) + scale_x_continuous(breaks = int_breaks)
 ```
 
 
