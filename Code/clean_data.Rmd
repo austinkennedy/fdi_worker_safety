@@ -221,6 +221,29 @@ merge_1 <- rename(merge_1, inj_us = rate.y)
 merge_1 <- rename(merge_1, inj_foreign = rate.x)
 merge_1$fdi <- as.numeric(merge_1$fdi)
 
+#Export data with source country fdi
+write.csv(merge_1, "../Temporary/odi_fdi_source.csv", row.names = FALSE)
+
+```
+
+```{r Create Interaction Summation}
+odi_sum <- merge_1
+
+#Sum of the interaction of FDI and source injury rate 
+odi_sum <- odi_sum %>%
+  mutate(interact = inj_foreign*fdi) %>%
+  group_by(STREET, Year, ESTAB_NAME) %>%
+  summarize(int_sum = sum(interact, na.rm = TRUE),
+            fdi_tot = sum(fdi, na.rm = TRUE))
+
+odi_sum <- merge(odi, odi_sum, by = c("STREET", "Year", "ESTAB_NAME"))
+
+
+write.csv(odi_sum, "../Temporary/odi_sum.csv", row.names = FALSE)
+```
+
+```{r Find Safe and Unsafe}
+
 #Find safe and unsafe fdi
 merge_2 <- merge_1 %>% 
   group_by(STREET, Year) %>%
