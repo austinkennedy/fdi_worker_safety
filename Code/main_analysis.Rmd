@@ -22,6 +22,8 @@ library(lubridate)
 odi_ind <- read.csv("../Temporary/odi_fdi.csv")
 # odi_fdi_safety <- read.csv("../Temporary/odi_fdi_safety.csv")
 # odi_source <- read.csv("../Temporary/odi_fdi_source.csv")
+fdi <- read.csv("../Temporary/fdi_country_year.csv")
+
 odi_plant <- read.csv("../Temporary/odi_plant.csv")
 ```
 
@@ -42,6 +44,17 @@ wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year + naics_3, od
 wa_mod4 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|naics_3, odi_plant)
 
 wa_models <- list(wa_mod1, wa_mod2, wa_mod3, wa_mod4)
+```
+
+```{r Deviation Regressions}
+
+d_mod1 <- feols(tcr ~ davg + davg^2 + davg^3, odi_plant)
+d_mod2 <- feols(tcr ~ davg|Year, odi_plant)
+d_mod3 <- feols(tcr ~ davg|naics_3, odi_plant)
+d_mod4 <- feols(tcr ~ davg|Year + naics_3, odi_plant)
+d_mod5 <- feols(tcr ~ log(fdi_tot)*davg, odi_plant)
+
+d_models <- list(d_mod1, d_mod2, d_mod3, d_mod4, d_mod5)
 ```
 
 ```{r Interaction Regressions}
@@ -66,9 +79,19 @@ modelsummary(wa_models,
              stars = TRUE,
              output = "markdown")
 
-
+modelsummary(d_models,
+             stars = TRUE,
+             output = "markdown")
 ```
+```{r Figures}
+fdi_all <- fdi %>%
+  filter(title_2 == "All Industries Total")
 
+fdi_source <- ggplot(fdi, aes(x=Year, y=fdi)) +
+  geom_smooth(se=FALSE, aes(color = Country))
+
+show(fdi_source)
+```
 
 ```{r Threshold Regressions}
 # mod1 <- feols(tcr ~ asinh(fdi)|Year, odi_ind, vcov = "twoway")

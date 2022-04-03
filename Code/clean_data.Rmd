@@ -122,6 +122,10 @@ fdi <- merge(fdi, uni[, c("code.y","title_3.x")], by.x = "title_3", by.y = "titl
 fdi <- rename(fdi, code = code.y)
 # fdi <- fdi[, c("title_2", "title_3", "code", "Year", "Country", "fdi")]
 fdi <- fdi %>% select("title_2", "title_3", "code", everything())
+
+#Make country-level fdi data as long as possible
+fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+write.csv(fdi, "../Temporary/fdi_country_year.csv")
 ```
 
 ```{r Import industry-only fdi data}
@@ -196,7 +200,7 @@ country_safety <- read.csv("../Temporary/country_safety.csv")
 
 ```{r Source country injury rate}
 #Make country-level fdi data as long as possible
-fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+# fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
 #Convert country safety to per 100 instead of 100,000 for comparisons
 country_safety$rate <- country_safety$rate / 1000
 
@@ -255,19 +259,24 @@ inj_world <- country_safety %>%
 
 odi_plant <- merge(odi_plant, inj_world, by = "Year")
 
-#Deviations from world average, summed
+#FDI-weighted deviations from world average, summed
 dev <- odi_plant %>%
+  mutate(dev = inj_foreign - inj_world) %>%
   group_by(STREET, Year, ESTAB_NAME) %>%
+  mutate(fdi_share = fdi/sum(fdi, na.rm = TRUE)) %>%
+  summarize(davg = sum(fdi_share*dev))
+  
 
 
 odi_plant <- merge(odi, interact, by = c("STREET", "Year", "ESTAB_NAME"))
 odi_plant <- merge(odi_plant, wavg, by = c("STREET", "Year", "ESTAB_NAME"))
+odi_plant <- merge(odi_plant, dev, by = c("STREET", "Year", "ESTAB_NAME"))
 
-##################START HERE
-davg <- odi_plant %>%
+
   
 #Export plant-level data
 write.csv(odi_plant, "../Temporary/odi_plant.csv")
+
 ```
 
 ```{r Create Interaction Summation}
