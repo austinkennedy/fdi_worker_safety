@@ -21,29 +21,52 @@ library(lubridate)
 ```{r Load Data}
 odi_ind <- read.csv("../Temporary/odi_fdi.csv")
 # odi_fdi_safety <- read.csv("../Temporary/odi_fdi_safety.csv")
-odi_source <- read.csv("../Temporary/odi_fdi_source.csv")
-odi_sum <- read.csv("../Temporary/odi_sum.csv")
+# odi_source <- read.csv("../Temporary/odi_fdi_source.csv")
+odi_plant <- read.csv("../Temporary/odi_plant.csv")
+```
+
+```{r Industry-detailed regressions}
+mod1 <- feols(tcr ~ log(fdi),odi_ind)
+mod2 <- feols(tcr ~ log(fdi)|Year, odi_ind)
+mod3 <- feols(tcr ~ log(fdi)|Year + industry, odi_ind)
+mod4 <- feols(tcr ~ log(fdi_tot), odi_plant)
+mod5 <- feols(tcr ~ log(fdi_tot)|Year, odi_plant)
+mod6 <- feols(tcr ~ log(fdi_tot)|Year + naics_3, odi_plant)
+ind_models <- list(mod1, mod2, mod3, mod4, mod5, mod6)
+```
+
+```{r Weighted Avg Regressions}
+wa_mod1 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg, odi_plant)
+wa_mod2 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year, odi_plant)
+wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year + naics_3, odi_plant)
+wa_mod4 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|naics_3, odi_plant)
+
+wa_models <- list(wa_mod1, wa_mod2, wa_mod3, wa_mod4)
 ```
 
 ```{r Interaction Regressions}
-mod1 <- feols(tcr ~ asinh(fdi)|Year, odi_ind, vcov = "twoway")
-mod2 <- feols(tcr ~ asinh(fdi)|Year + industry, odi_ind, vcov = "twoway")
-mod3 <- feols(tcr ~ asinh(fdi) + asinh(fdi)*inj_foreign, odi_source)
-mod4 <- feols(tcr ~ asinh(fdi) + asinh(fdi)*inj_foreign|Year, odi_source, vcov = "twoway")
-mod5 <- feols(tcr ~ asinh(fdi) + asinh(fdi)*inj_foreign|Year + naics_3, odi_source, vcov = "twoway")
+# mod1 <- feols(tcr ~ asinh(fdi)|Year, odi_ind, vcov = "twoway")
+# mod2 <- feols(tcr ~ asinh(fdi)|Year + industry, odi_ind, vcov = "twoway")
+# mod3 <- feols(tcr ~ asinh(fdi) + asinh(fdi)*inj_foreign, odi_source)
+# mod4 <- feols(tcr ~ asinh(fdi) + asinh(fdi)*inj_foreign|Year, odi_source, vcov = "twoway")
+# mod5 <- feols(tcr ~ asinh(fdi) + asinh(fdi)*inj_foreign|Year + naics_3, odi_source, vcov = "twoway")
 ```
 ```{r Summation Interaction}
-mod6 <- feols(tcr ~ asinh(fdi_tot) + asinh(int_sum), odi_sum)
-mod7 <- feols(tcr ~ asinh(fdi_tot) + asinh(int_sum)|Year, odi_sum)
-mod8 <- feols(tcr ~ asinh(fdi_tot) + asinh(int_sum)|Year + naics_3, odi_sum)
+# mod6 <- feols(tcr ~ asinh(fdi_tot) + asinh(int_sum), odi_sum)
+# mod7 <- feols(tcr ~ asinh(fdi_tot) + asinh(int_sum)|Year, odi_sum)
+# mod8 <- feols(tcr ~ asinh(fdi_tot) + asinh(int_sum)|Year + naics_3, odi_sum)
 ```
 
 ```{r Table 2}
-models <- list(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8)
-
-modelsummary(models,
+modelsummary(ind_models,
              stars = TRUE,
              output = "markdown")
+
+modelsummary(wa_models,
+             stars = TRUE,
+             output = "markdown")
+
+
 ```
 
 

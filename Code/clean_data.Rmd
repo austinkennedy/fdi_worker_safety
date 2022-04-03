@@ -194,7 +194,7 @@ odi_matched$fdi <- as.numeric(odi_matched$fdi)
 country_safety <- read.csv("../Temporary/country_safety.csv")
 ```
 
-```{r Safe/Unsafe}
+```{r Source country injury rate}
 #Make country-level fdi data as long as possible
 fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
 #Convert country safety to per 100 instead of 100,000 for comparisons
@@ -222,24 +222,75 @@ merge_1 <- rename(merge_1, inj_foreign = rate.x)
 merge_1$fdi <- as.numeric(merge_1$fdi)
 
 #Export data with source country fdi
-write.csv(merge_1, "../Temporary/odi_fdi_source.csv", row.names = FALSE)
+# write.csv(merge_1, "../Temporary/odi_fdi_source.csv", row.names = FALSE)
 
 ```
 
-```{r Create Interaction Summation}
-odi_sum <- merge_1
+```{r Interaction summation and FDI-weighted injury rate}
+odi_plant <- merge_1
 
-#Sum of the interaction of FDI and source injury rate 
-odi_sum <- odi_sum %>%
+#remove NAs and negative fdi
+
+odi_plant <- odi_plant[!is.na(odi_plant$fdi),]
+odi_plant <- odi_plant[!(odi_plant$fdi<0),]
+
+#Summed Interaction
+interact <- odi_plant %>%
   mutate(interact = inj_foreign*fdi) %>%
   group_by(STREET, Year, ESTAB_NAME) %>%
   summarize(int_sum = sum(interact, na.rm = TRUE),
             fdi_tot = sum(fdi, na.rm = TRUE))
 
-odi_sum <- merge(odi, odi_sum, by = c("STREET", "Year", "ESTAB_NAME"))
+#FDI-weighted avg
+wavg <- odi_plant %>%
+  group_by(STREET, Year, ESTAB_NAME) %>%
+  mutate(fdi_share = fdi/sum(fdi, na.rm = TRUE)) %>%
+  mutate(inj_weighted = fdi_share*inj_foreign) %>%
+  summarize(weight_avg = sum(inj_weighted))
+
+#Yearly world average injury rate
+inj_world <- country_safety %>%
+  group_by(Year) %>%
+  summarize(inj_world = mean(rate))
+
+odi_plant <- merge(odi_plant, inj_world, by = "Year")
+
+#Deviations from world average, summed
+dev <- odi_plant %>%
+  group_by(STREET, Year, ESTAB_NAME) %>%
 
 
-write.csv(odi_sum, "../Temporary/odi_sum.csv", row.names = FALSE)
+odi_plant <- merge(odi, interact, by = c("STREET", "Year", "ESTAB_NAME"))
+odi_plant <- merge(odi_plant, wavg, by = c("STREET", "Year", "ESTAB_NAME"))
+
+##################START HERE
+davg <- odi_plant %>%
+  
+#Export plant-level data
+write.csv(odi_plant, "../Temporary/odi_plant.csv")
+```
+
+```{r Create Interaction Summation}
+odi_plant <- merge_1
+
+#Sum of the interaction of FDI and source injury rate 
+odi_plant <- odi_plant %>%
+  mutate(interact = inj_foreign*fdi) %>%
+  group_by(STREET, Year, ESTAB_NAME) %>%
+  summarize(int_sum = sum(interact, na.rm = TRUE),
+            fdi_tot = sum(fdi, na.rm = TRUE))
+
+odi_plant <- merge(odi, odi_plant, by = c("STREET", "Year", "ESTAB_NAME"))
+
+
+# write.csv(odi_plant, "../Temporary/odi_plant.csv", row.names = FALSE)
+
+```
+
+
+```{r FDI weighted injuries}
+
+  
 ```
 
 ```{r Find Safe and Unsafe}
