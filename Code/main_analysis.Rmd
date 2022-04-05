@@ -38,7 +38,7 @@ ind_models <- list(mod1, mod2, mod3, mod4, mod5, mod6)
 ```
 
 ```{r Weighted Avg Regressions}
-wa_mod1 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg, odi_plant, cluster = c("Year", "naics_3"))
+wa_mod1 <- feols(tcr ~ log(fdi_tot) + log(weight_avg), odi_plant, cluster = c("Year", "naics_3"))
 wa_mod2 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year, odi_plant, cluster = c("Year", "naics_3"))
 wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
 wa_mod4 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|naics_3, odi_plant, cluster = c("Year", "naics_3"))

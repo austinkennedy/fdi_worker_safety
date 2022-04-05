@@ -1,0 +1,67 @@
+---
+title: "industry_analysis"
+author: "Austin Kennedy"
+date: '2022-04-05'
+output: html_document
+---
+
+```{r Clear memory and setup}
+rm(list=ls())
+options(scipen=999)
+```
+
+```{r Load packages}
+library(tidyverse)
+```
+
+```{r Load Data}
+#Plant-level industry fdi data
+odi_ind <- read.csv("../Temporary/odi_fdi.csv")
+fdi_ind <- read.csv("../Temporary/fdi_industry_year.csv")
+```
+
+```{r Find highest fdi sectors}
+#remove NAs
+fdi_ind <- fdi_ind[!is.na(fdi_ind$fdi),]
+#numeric fdi
+fdi_ind$fdi <- as.numeric(fdi_ind$fdi)
+
+fdi_3digit <- fdi_ind %>%
+  filter(nchar(code) == 3)
+
+fdi_sum <- fdi_3digit %>%
+  group_by(code) %>%
+  summarize(sum = sum(fdi))
+
+fdi_total <- sum(fdi_sum$sum)
+
+fdi_sum <- fdi_sum %>%
+  mutate(share = sum/fdi_total)
+
+#Industry names
+fdi_sum <- merge(fdi_sum, fdi_3digit[,c( "industry.y", "code")], by = "code")
+
+#Rank by share
+fdi_sum <- fdi_sum[order(-fdi_sum$share),]
+
+fdi_sum <- distinct(fdi_sum)
+
+
+ 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
