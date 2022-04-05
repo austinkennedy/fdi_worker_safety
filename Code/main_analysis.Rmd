@@ -39,11 +39,10 @@ ind_models <- list(mod1, mod2, mod3, mod4, mod5, mod6)
 
 ```{r Weighted Avg Regressions}
 wa_mod1 <- feols(tcr ~ log(fdi_tot) + log(weight_avg), odi_plant, cluster = c("Year", "naics_3"))
-wa_mod2 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year, odi_plant, cluster = c("Year", "naics_3"))
-wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
-wa_mod4 <- feols(tcr ~ log(fdi_tot) + log(fdi_tot)*weight_avg|naics_3, odi_plant, cluster = c("Year", "naics_3"))
+wa_mod2 <- feols(tcr ~ log(fdi_tot) + log(weight_avg)|Year, odi_plant, cluster = c("Year", "naics_3"))
+wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(weight_avg)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
 
-wa_models <- list(wa_mod1, wa_mod2, wa_mod3, wa_mod4)
+wa_models <- list(wa_mod1, wa_mod2, wa_mod3)
 ```
 
 ```{r Deviation Regressions}
@@ -104,7 +103,7 @@ tab_ind <- modelsummary(ind_models,
              output = "latex",
              escape = FALSE,
              fmt = "%.4f") %>%
-  add_header_above(c("Full Sample" = 3, "Source-Country Sample" = 2)) %>%
+  add_header_above(c("Full Sample" = 4, "Source-Country Sample" = 2)) %>%
   add_footnote(fn, threeparttable = TRUE)
                         
 kableExtra::save_kable(tab_ind, file = "../Output/table_ind.tex")
@@ -141,41 +140,8 @@ tab_sum <- modelsummary(s_models,
 kableExtra::save_kable(tab_sum, file = "../Output/table_sum.tex")
 ```
 
-```{r Deviation table}
-
-cm <- c("(Intercept)" = "Intercept", "davg" = "Safety", "log(fdi)" = "$ln(FDI)$")
-
-cap <- "Dependent variable: Total Case Rate (TCR)"
-
-gm <- tribble(~raw, ~clean, ~fmt,
-              "FE: Year", "Year FE", "%.4f",
-              "FE: naics_3", "Industry FE", "%.4f",
-              "FE: industry", "Industry FE", "%.4f",
-              "nobs", "Observations", "%.0f",
-              "r.squared", "R2", "%.2f")
-
-fn <- "Standard Errors clustered at the Year-Industry level."
-
-tab_d <- modelsummary(d_models,
-             stars = TRUE,
-             coef_map = cm,
-             title = cap,
-             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
-             gof_map = gm,
-             # coef_omit = "Intercept",
-             output = "latex",
-             escape = FALSE,
-             fmt = "%.4f") %>%
-  # add_header_above(c("Full Sample" = 3, "Source-Country Sample" = 2)) %>%
-  add_footnote(fn, threeparttable = TRUE)
-                        
-kableExtra::save_kable(tab_d, file = "../Output/table_d.tex")
-
-```
-
-```{r Deviation Interaction table}
-
-cm <- c("(Intercept)" = "Intercept", "davg" = "Safety", "log(fdi)" = "$ln(FDI)$", "log(fdi_tot):davg" = "$ln(FDI) \\times Safety$")
+```{r Weighted Average Table}
+cm <- c("(Intercept)" = "Intercept", "log(fdi_tot)" = "$FDI^{total}$", "log(weight_avg)" = "$Exposure$")
 
 cap <- "Dependent variable: Total Case Rate (TCR)"
 
@@ -188,7 +154,7 @@ gm <- tribble(~raw, ~clean, ~fmt,
 
 fn <- "Standard Errors clustered at the Year-Industry level."
 
-tab_dint <- modelsummary(dint_models,
+tab_wa <- modelsummary(wa_models,
              stars = TRUE,
              coef_map = cm,
              title = cap,
@@ -198,12 +164,13 @@ tab_dint <- modelsummary(dint_models,
              output = "latex",
              escape = FALSE,
              fmt = "%.4f") %>%
-  # add_header_above(c("Full Sample" = 3, "Source-Country Sample" = 2)) %>%
+  # add_header_above(c("Full Sample" = 3, "Source-Country Sample" = 2)
+                   # ) %>%
   add_footnote(fn, threeparttable = TRUE)
                         
-kableExtra::save_kable(tab_dint, file = "../Output/table_dint.tex")
-
+kableExtra::save_kable(tab_wa, file = "../Output/table_wa.tex")
 ```
+
 
 ```{r See all results}
 
@@ -223,34 +190,6 @@ modelsummary(s_models,
              stars = TRUE,
              output = "markdown")
 
-# cm <- c("asinh(fdi)" = "$FDI^{total}$", "asinh(fdi_safe_us)" = "$FDI^{safe}$", "asinh(fdi_unsafe_us)" = "$FDI^{unsafe}$", "asinh(fdi_safe_ind)" = "$FDI^{safe}$", "asinh(fdi_unsafe_ind)" = "$FDI^{unsafe}$", "asinh(fdi_safe_plant)" = "$FDI^{safe}$", "asinh(fdi_unsafe_plant)" = "$FDI^{unsafe}$")
-# 
-# cap <- "Dependent variable: Total Case Rate (TCR)"
-# 
-# fn <- "Time fixed effects are included in all specifications. All independent variables are the inverse hyperbolic sine of the inward FDI position in the industry. The columns United States, Industry, and Plant represent different thresholds used to determine whether FDI is coming from safe or unsafe sources. Robust standard errors are clustered at the industry-year level."
-# 
-# gm <- tribble(~raw, ~clean, ~fmt,
-#               "FE: naics_3", "Industry FE", "%.4f",
-#               "FE: industry", "Industry FE", "%.4f",
-#               "nobs", "Observations", "%.0f",
-#               "r.squared", "R2", "%.2f")
-# 
-# 
-# 
-# tab <- modelsummary(models,
-#              stars = TRUE,
-#              coef_map = cm,
-#              title = cap,
-#              gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std|Year",
-#              gof_map = gm,
-#              coef_omit = "Intercept",
-#              output = "latex",
-#              escape = FALSE,
-#              fmt = "%.4f") %>%
-#   add_header_above(c(" " = 3, "United States" = 2, "Industry" = 2, "Plant" = 2)) %>%
-#   add_footnote(fn, threeparttable = TRUE)
-# 
-# kableExtra::save_kable(tab, file = "../Output/table1.tex")
 ```
 
 ```{r Figures}
