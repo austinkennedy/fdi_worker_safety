@@ -141,7 +141,7 @@ kableExtra::save_kable(tab_sum, file = "../Output/table_sum.tex")
 ```
 
 ```{r Weighted Average Table}
-cm <- c("(Intercept)" = "Intercept", "log(fdi_tot)" = "$FDI^{total}$", "log(weight_avg)" = "$Exposure$")
+cm <- c("(Intercept)" = "Intercept", "log(fdi_tot)" = "$FDI^{total}$", "log(weight_avg)" = "$Safety$")
 
 cap <- "Dependent variable: Total Case Rate (TCR)"
 
