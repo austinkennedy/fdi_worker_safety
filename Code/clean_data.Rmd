@@ -19,6 +19,8 @@ library(tidyverse)
 # odi2 <- read.csv("../Input/ODI/ODI_2002-2011.csv")
 odi <- read.csv("../Input/ODI/ODI_2002-2011.csv")
 fdi <- read.csv("../Input/fdi/fdi_country_industry.csv", nrows = 67, na.strings = "n.s.", check.names = FALSE)
+country_safety <- read.csv("../Temporary/country_safety.csv")
+
 #fdi <- read.csv("../Input/us_inward_country.csv", nrows = 65, na.strings = "n.s.", check.names = FALSE)
 ```
 
@@ -172,6 +174,17 @@ fdi_ind_matched$year <- as.numeric(fdi_ind_matched$year)
 # write.csv(fdi_ind_matched, "../Temporary/fdi_industry_year.csv")
 
 ```
+```{r Match source country injury rates to FDI}
+#Make country-level fdi data as long as possible
+# fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
+#Convert country safety to per 100 instead of 100,000 for comparisons
+country_safety$rate <- country_safety$rate / 1000
+
+fdi_safety <- merge(fdi, country_safety[,c("rate","Country", "Year")], by = c("Country", "Year"))
+
+fdi_safety$fdi <- as.numeric(fdi_safety$fdi)
+```
+
 
 ```{r Merge odi and fdi data}
 m_5 <- merge(odi, fdi_ind_matched, by.x = c("Year","naics_5"), by.y = c("year","code"))
@@ -193,22 +206,53 @@ odi_matched <- odi_matched %>% mutate(tcr = (INJ_M1*200000) / HOURS_Q2,
 odi_matched$fdi <- as.numeric(odi_matched$fdi)
 ```
 
+```{r Generate "FDI-exposed" dummies}
+ind_exposed <- c(325, 524, 523, 336, 441, 333, 334, 324)
+
+odi_matched <- odi_matched %>%
+  mutate(exposed = ifelse(naics_3 %in% ind_exposed, 1, 0))
+
+```
+
+```{r Find FDI-weighted aggregate injury rate}
+x <- fdi_safety
+x <- x[!is.na(x$fdi),]
+x <- x[!is.na(x$rate),]
+
+safety_aggavg <- x %>%
+  filter(title_3 == "All Industries Total") %>%
+  group_by(Year) %>%
+  mutate(fdi_share = fdi/sum(fdi)) %>%
+  mutate(inj_weighted = fdi_share*rate) %>%
+  summarize(weight_avg = sum(inj_weighted))
+
+#Create lags
+safety_aggavg <- safety_aggavg %>%
+  mutate(weight_avg_l1 = lag(weight_avg, n = 1, order_by = Year)) %>%
+  mutate(weight_avg_l2 = lag(weight_avg, n = 2, order_by = Year)) %>%
+  mutate(weight_avg_l3 = lag(weight_avg, n = 3, order_by = Year)) %>%
+  mutate(weight_avg_l4 = lag(weight_avg, n = 4, order_by = Year))
+```
+
+```{r Merge industry-odi and agg injury rates}
+odi_matched <- merge(odi_matched, safety_aggavg, by = "Year")
+
+#remove NAs
+odi_matched <- odi_matched[!is.na(odi_matched$fdi),]
+
+# #Create lag
+# odi_matched <- odi_matched %>%
+#   mutate(weight_avg_l1 = lag(weight_avg, n = 1, order_by = Year))
+```
+
 ```{r Export matched odi data}
-#write.csv(odi_matched, "../Temporary/odi_fdi.csv", row.names = FALSE)
+write.csv(odi_matched, "../Temporary/odi_fdi.csv", row.names = FALSE)
+
 ```
 
-```{r Import country safety data}
-country_safety <- read.csv("../Temporary/country_safety.csv")
-```
 
-```{r Source country injury rate}
-#Make country-level fdi data as long as possible
-# fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
-#Convert country safety to per 100 instead of 100,000 for comparisons
-country_safety$rate <- country_safety$rate / 1000
 
-fdi_safety <- merge(fdi, country_safety[,c("rate","Country", "Year")], by = c("Country", "Year"))
-
+```{r Merge odi and fdi_safety}
 #For now, just work with firms that can be matched at the 3-digit level
 merge_1 <- merge(odi, fdi_safety, by.x = c("Year","naics_3"), by.y = c("Year","code"))
 

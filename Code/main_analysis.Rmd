@@ -78,6 +78,22 @@ s_mod4 <- feols(tcr ~ log(fdi_tot) + log(int_sum)|Year + naics_3, odi_sum, clust
 s_models <- list(s_mod1, s_mod2, s_mod3, s_mod4)
 ```
 
+```{r FDI-exposed}
+# e_mod1 <- feols(tcr ~ exposed*log(weight_avg) - exposed - log(weight_avg)|Year + industry.y, odi_ind)
+# e_mod2 <- feols(tcr ~ exposed*log(weight_avg_l1), odi_ind)
+# e_mod3 <- feols(tcr ~ exposed*log(weight_avg_l2), odi_ind)
+# e_mod4 <- feols(tcr ~ exposed*log(weight_avg_l3), odi_ind)
+# e_mod5 <- feols(tcr ~ exposed*log(weight_avg_l4), odi_ind)
+
+e_mod1 <- feols(tcr ~ exposed*log(weight_avg) - exposed - log(weight_avg)|Year + industry.y, odi_ind)
+e_mod2 <- feols(tcr ~ exposed*log(weight_avg_l1) - exposed - log(weight_avg_l1)|Year + industry.y, odi_ind)
+e_mod3 <- feols(tcr ~ exposed*log(weight_avg_l2)- exposed - log(weight_avg_l2)|Year + industry.y, odi_ind)
+e_mod4 <- feols(tcr ~ exposed*log(weight_avg_l3)- exposed - log(weight_avg_l3)|Year + industry.y, odi_ind)
+e_mod5 <- feols(tcr ~ exposed*log(weight_avg_l4)- exposed - log(weight_avg_l4)|Year + industry.y, odi_ind)
+
+e_models <- list(e_mod1, e_mod2, e_mod3, e_mod4, e_mod5)
+```
+
 ```{r Industry tables}
 
 cm <- c("(Intercept)" = "Intercept", "log(fdi)" = "$ln(FDI)$", "log(fdi_tot)" = "$ln(FDI)$")
@@ -171,6 +187,36 @@ tab_wa <- modelsummary(wa_models,
 kableExtra::save_kable(tab_wa, file = "../Output/table_wa.tex")
 ```
 
+```{r FDI-exposed table}
+cm <- c("(Intercept)" = "Intercept", "exposed:log(weight_avg)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l1)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l2)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l3)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l4)" = "$Exposed \\times Safety")
+
+cap <- "Dependent variable: Total Case Rate (TCR)"
+
+gm <- tribble(~raw, ~clean, ~fmt,
+              "FE: Year", "Year FE", "%.4f",
+              "FE: industry.y", "Industry FE", "%.4f",
+              "nobs", "Observations", "%.0f",
+              "r.squared", "R2", "%.2f")
+
+fn <- "Standard Errors clustered at the Year-Industry level."
+
+tab_e <- modelsummary(e_models,
+             stars = TRUE,
+             coef_map = cm,
+             title = cap,
+             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+             gof_map = gm,
+             # coef_omit = "Intercept",
+             output = "latex",
+             escape = FALSE,
+             fmt = "%.4f") %>%
+  add_header_above(c(" " = 1, "t = 0" = 1, "t = -1" = 1, "t = -2" = 1, "t = -3" = 1, "t = -4" = 1)
+  ) %>%
+  add_footnote(fn, threeparttable = TRUE)
+                        
+kableExtra::save_kable(tab_e, file = "../Output/table_e.tex")
+```
+
 
 ```{r See all results}
 
@@ -187,6 +233,10 @@ modelsummary(d_models,
              output = "markdown")
 
 modelsummary(s_models,
+             stars = TRUE,
+             output = "markdown")
+
+modelsummary(e_models,
              stars = TRUE,
              output = "markdown")
 
