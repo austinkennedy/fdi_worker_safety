@@ -51,6 +51,17 @@ fdi_sum <- distinct(fdi_sum)
 ```
 
 
+```{r FDI-industry bar chart}
+b <- ggplot(fdi_sum[1:20,], aes(x = share, y = reorder(industry.y, share))) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = industry.y)) +
+  theme(axis.text.y = element_blank())
+
+b
+```
+
+
+
 
 
 
