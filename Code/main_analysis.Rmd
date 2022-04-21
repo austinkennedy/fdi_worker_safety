@@ -37,12 +37,32 @@ mod6 <- feols(tcr ~ log(fdi_tot)|Year + naics_3, odi_plant, cluster = c("Year", 
 ind_models <- list(mod1, mod2, mod3, mod4, mod5, mod6)
 ```
 
+```{r Industry lags}
+lmod1 <-feols(tcr ~ log(fdi_l1)|Year + industry, odi_ind, cluster = c("Year", "industry"))
+lmod2 <-feols(tcr ~ log(fdi_l2)|Year + industry, odi_ind, cluster = c("Year", "industry"))
+lmod3 <-feols(tcr ~ log(fdi_l3)|Year + industry, odi_ind, cluster = c("Year", "industry"))
+lmod4 <-feols(tcr ~ log(fdi_l4)|Year + industry, odi_ind, cluster = c("Year", "industry"))
+
+
+lmods <- list(lmod1, lmod2, lmod3, lmod4)
+```
+
 ```{r Weighted Avg Regressions}
 wa_mod1 <- feols(tcr ~ log(fdi_tot) + log(weight_avg), odi_plant, cluster = c("Year", "naics_3"))
 wa_mod2 <- feols(tcr ~ log(fdi_tot) + log(weight_avg)|Year, odi_plant, cluster = c("Year", "naics_3"))
 wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(weight_avg)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
 
 wa_models <- list(wa_mod1, wa_mod2, wa_mod3)
+```
+
+```{r Weighted Avg lags}
+lwa_mod1 <- feols(tcr ~ log(fdi_tot) + log(weight_avg_l1)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
+lwa_mod2 <- feols(tcr ~ log(fdi_tot) + log(weight_avg_l2)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
+lwa_mod3 <- feols(tcr ~ log(fdi_tot) + log(weight_avg_l3)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
+lwa_mod4 <- feols(tcr ~ log(fdi_tot) + log(weight_avg_l4)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
+
+lwa_mods <- list(lwa_mod1, lwa_mod2, lwa_mod3, lwa_mod4)
+
 ```
 
 ```{r Deviation Regressions}
@@ -237,6 +257,14 @@ modelsummary(s_models,
              output = "markdown")
 
 modelsummary(e_models,
+             stars = TRUE,
+             output = "markdown")
+
+modelsummary(lmods,
+             stars = TRUE,
+             output = "markdown")
+
+modelsummary(lwa_mods,
              stars = TRUE,
              output = "markdown")
 

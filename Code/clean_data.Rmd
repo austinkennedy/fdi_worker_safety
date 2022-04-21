@@ -170,6 +170,14 @@ fdi_ind_matched <- merge(fdi_ind, match[, c("code", "industry.x", "industry.y")]
 fdi_ind_matched$code <- as.numeric(fdi_ind_matched$code)
 fdi_ind_matched$year <- as.numeric(fdi_ind_matched$year)
 
+#Create lagged FDI
+fdi_ind_matched <- fdi_ind_matched %>%
+  group_by(code) %>%
+  mutate(fdi_l1 = lag(fdi, n=1, order_by = year)) %>%
+  mutate(fdi_l2 = lag(fdi, n=2, order_by = year)) %>%
+  mutate(fdi_l3 = lag(fdi, n=3, order_by = year)) %>%
+  mutate(fdi_l4 = lag(fdi, n=4, order_by = year))
+
 #Export fdi data
 # write.csv(fdi_ind_matched, "../Temporary/fdi_industry_year.csv")
 
@@ -183,6 +191,22 @@ country_safety$rate <- country_safety$rate / 1000
 fdi_safety <- merge(fdi, country_safety[,c("rate","Country", "Year")], by = c("Country", "Year"))
 
 fdi_safety$fdi <- as.numeric(fdi_safety$fdi)
+fdi_safety <- fdi_safety[!is.na(fdi_safety$fdi),]
+fdi_safety <- fdi_safety[!(fdi_safety<0),]
+fdi_safety <- fdi_safety[!is.na(fdi_safety$rate),]
+
+#create lags
+fdi_safety <- fdi_safety %>%
+  group_by(Country, code) %>%
+  mutate(fdi_l1 = lag(fdi, n=1, order_by = Year)) %>%
+  mutate(rate_l1 = lag(rate, n=1, order_by = Year)) %>%
+  mutate(fdi_l2 = lag(fdi, n=2, order_by = Year)) %>%
+  mutate(rate_l2 = lag(rate, n=2, order_by = Year)) %>%
+  mutate(fdi_l3 = lag(fdi, n=3, order_by = Year)) %>%
+  mutate(rate_l3 = lag(rate, n=3, order_by = Year)) %>%
+  mutate(fdi_l4 = lag(fdi, n=4, order_by = Year)) %>%
+  mutate(rate_l4 = lag(rate, n=4, order_by = Year))
+
 ```
 
 
@@ -226,7 +250,7 @@ safety_aggavg <- x %>%
   mutate(inj_weighted = fdi_share*rate) %>%
   summarize(weight_avg = sum(inj_weighted))
 
-#Create lags
+#WA Agg injury rate lags
 safety_aggavg <- safety_aggavg %>%
   mutate(weight_avg_l1 = lag(weight_avg, n = 1, order_by = Year)) %>%
   mutate(weight_avg_l2 = lag(weight_avg, n = 2, order_by = Year)) %>%
@@ -239,10 +263,6 @@ odi_matched <- merge(odi_matched, safety_aggavg, by = "Year")
 
 #remove NAs
 odi_matched <- odi_matched[!is.na(odi_matched$fdi),]
-
-# #Create lag
-# odi_matched <- odi_matched %>%
-#   mutate(weight_avg_l1 = lag(weight_avg, n = 1, order_by = Year))
 ```
 
 ```{r Export matched odi data}
@@ -280,10 +300,10 @@ merge_1$fdi <- as.numeric(merge_1$fdi)
 ```{r Interaction summation and FDI-weighted injury rate}
 odi_plant <- merge_1
 
+yo <- a %>%
+  filter(ESTAB_NAME == "Flowers Bakery of Texarkana, LLC", Country == "Germany")
 #remove NAs and negative fdi
 
-odi_plant <- odi_plant[!is.na(odi_plant$fdi),]
-odi_plant <- odi_plant[!(odi_plant$fdi<0),]
 
 #Summed Interaction
 interact <- odi_plant %>%
@@ -293,11 +313,39 @@ interact <- odi_plant %>%
             fdi_tot = sum(fdi, na.rm = TRUE))
 
 #FDI-weighted avg
-wavg <- odi_plant %>%
+a <- odi_plant %>%
   group_by(STREET, Year, ESTAB_NAME) %>%
   mutate(fdi_share = fdi/sum(fdi, na.rm = TRUE)) %>%
+  mutate(fdi_share_l1 = fdi_l1/sum(fdi_l1, na.rm=TRUE)) %>%
+  mutate(fdi_share_l2 = fdi_l2/sum(fdi_l2, na.rm=TRUE)) %>%
+  mutate(fdi_share_l3 = fdi_l3/sum(fdi_l3, na.rm=TRUE)) %>%
+  mutate(fdi_share_l4 = fdi_l4/sum(fdi_l4, na.rm=TRUE)) %>%
   mutate(inj_weighted = fdi_share*inj_foreign) %>%
-  summarize(weight_avg = sum(inj_weighted))
+  mutate(inj_weighted_l1 = fdi_share_l1*rate_l1) %>%
+  mutate(inj_weighted_l2 = fdi_share_l2*rate_l2) %>%
+  mutate(inj_weighted_l3 = fdi_share_l3*rate_l3) %>%
+  mutate(inj_weighted_l4 = fdi_share_l4*rate_l4)
+
+wavg_l0 <- a %>%
+  summarize(weight_avg = sum(inj_weighted, na.rm = TRUE))
+  # summarize(weight_avg = sum(inj_weighted))
+wavg_l1 <- a %>%
+  summarize(weight_avg_l1 = sum(inj_weighted_l1, na.rm = TRUE))
+
+wavg_l2 <- a %>%
+  summarize(weight_avg_l2 = sum(inj_weighted_l2, na.rm = TRUE))
+
+wavg_l3 <- a %>%
+  summarize(weight_avg_l3 = sum(inj_weighted_l3, na.rm = TRUE))
+
+wavg_l4 <- a %>%
+  summarize(weight_avg_l4 = sum(inj_weighted_l4, na.rm = TRUE))
+
+wavg <- list(wavg_l0, wavg_l1, wavg_l2, wavg_l3, wavg_l4)
+
+wavg <- wavg %>%
+  reduce(full_join, by = c("STREET", "Year", "ESTAB_NAME"))
+
 
 #Yearly world average injury rate
 inj_world <- country_safety %>%
@@ -319,8 +367,13 @@ odi_plant <- merge(odi, interact, by = c("STREET", "Year", "ESTAB_NAME"))
 odi_plant <- merge(odi_plant, wavg, by = c("STREET", "Year", "ESTAB_NAME"))
 odi_plant <- merge(odi_plant, dev, by = c("STREET", "Year", "ESTAB_NAME"))
 
-
-  
+# wa_lags <- odi_plant %>%
+#   group_by(STREET, Year, ESTAB_NAME) %>%
+#   mutate(weight_avg_l1 = lag(weight_avg, n=1, order_by = Year)) %>%
+#   mutate(weight_avg_l2 = lag(weight_avg, n=2, order_by = Year)) %>%
+#   mutate(weight_avg_l3 = lag(weight_avg, n=3, order_by = Year)) %>%
+#   mutate(weight_avg_l4 = lag(weight_avg, n=4, order_by = Year)) 
+#   
 #Export plant-level data
 write.csv(odi_plant, "../Temporary/odi_plant.csv")
 
@@ -334,7 +387,8 @@ odi_plant <- odi_plant %>%
   mutate(interact = inj_foreign*fdi) %>%
   group_by(STREET, Year, ESTAB_NAME) %>%
   summarize(int_sum = sum(interact, na.rm = TRUE),
-            fdi_tot = sum(fdi, na.rm = TRUE))
+            fdi_tot = sum(fdi, na.rm = TRUE)) %>%
+
 
 odi_plant <- merge(odi, odi_plant, by = c("STREET", "Year", "ESTAB_NAME"))
 
@@ -351,23 +405,25 @@ odi_plant <- merge(odi, odi_plant, by = c("STREET", "Year", "ESTAB_NAME"))
 
 ```{r Find Safe and Unsafe}
 
-#Find safe and unsafe fdi
-merge_2 <- merge_1 %>% 
-  group_by(STREET, Year) %>%
-  summarize(fdi_safe_us = sum(fdi[which(inj_foreign <= inj_us)], na.rm = TRUE),
-            fdi_unsafe_us = sum(fdi[which(inj_foreign > inj_us)], na.rm = TRUE),
-            fdi_safe_ind = sum(fdi[which(inj_foreign <= inj_ind)], na.rm = TRUE),
-            fdi_unsafe_ind = sum(fdi[which(inj_foreign > inj_ind)], na.rm = TRUE),
-            fdi_safe_plant = sum(fdi[which(inj_foreign <= tcr)], na.rm = TRUE),
-            fdi_unsafe_plant = sum(fdi[which(inj_foreign > tcr)], na.rm = TRUE)
-            )
+# #Find safe and unsafe fdi
+# merge_2 <- merge_1 %>% 
+#   group_by(STREET, Year) %>%
+#   summarize(fdi_safe_us = sum(fdi[which(inj_foreign <= inj_us)], na.rm = TRUE),
+#             fdi_unsafe_us = sum(fdi[which(inj_foreign > inj_us)], na.rm = TRUE),
+#             fdi_safe_ind = sum(fdi[which(inj_foreign <= inj_ind)], na.rm = TRUE),
+#             fdi_unsafe_ind = sum(fdi[which(inj_foreign > inj_ind)], na.rm = TRUE),
+#             fdi_safe_plant = sum(fdi[which(inj_foreign <= tcr)], na.rm = TRUE),
+#             fdi_unsafe_plant = sum(fdi[which(inj_foreign > tcr)], na.rm = TRUE)
+#             )
+# 
+# #merge odi and safe/unsafe
+# odi_final <- merge(odi, merge_2, by = c("STREET", "Year"))
 
-#merge odi and safe/unsafe
-odi_final <- merge(odi, merge_2, by = c("STREET", "Year"))
 ```
 
 ```{r Export ODI final}
-write.csv(odi_final, "../Temporary/odi_fdi_safety.csv", row.names = FALSE)
+# write.csv(odi_final, "../Temporary/odi_fdi_safety.csv", row.names = FALSE)
+
 ```
 
 
@@ -408,13 +464,13 @@ write.csv(odi_final, "../Temporary/odi_fdi_safety.csv", row.names = FALSE)
 
 
 ```{r Create Plant IDs}
-#Using street addresses because want to identify individual plants instead of firms
-odi <- odi %>%
-  group_by(STREET) %>%
-  mutate(ID = cur_group_id())
-
-#check no. of unique IDs
-length(unique(odi[["ID"]]))
+# #Using street addresses because want to identify individual plants instead of firms
+# odi <- odi %>%
+#   group_by(STREET) %>%
+#   mutate(ID = cur_group_id())
+# 
+# #check no. of unique IDs
+# length(unique(odi[["ID"]]))
 ```
 
 ```{r Test code}
@@ -423,7 +479,28 @@ uni <- distinct(new, title_3.x, title_3.y)
 
 
 
+```{r Quick Figs}
+fdi_all <- fdi 
+fdi_all$fdi <- as.numeric(fdi_all$fdi)
+fdi_all <- fdi_all %>%
+  filter(title_3 == "All Industries Total") 
 
+fdi_avg <- fdi_all%>%
+  group_by(Country) %>%
+  summarize(avg = mean(fdi, na.rm = TRUE))
+
+fdi_avg <- arrange(fdi_avg, -avg)
+
+fdi_top <- fdi_all %>%
+  filter(Country %in% countries)
+  # filter(Country == c("China", "United Kingdom", "Japan", "Netherlands", "Canada", "Mexico", "France", "Germany", "Switzerland", "Middle East"))
+
+countries = list("China", "United Kingdom", "Japan", "Netherlands", "Canada", "Mexico", "France", "Germany", "Switzerland", "Middle East")
+
+inward_fdi <- ggplot(fdi_top, aes(x = Year, y = fdi, group = Country, color = Country)) + geom_line()
+show(inward_fdi)
+
+```
 
 
 
