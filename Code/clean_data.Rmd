@@ -300,8 +300,8 @@ merge_1$fdi <- as.numeric(merge_1$fdi)
 ```{r Interaction summation and FDI-weighted injury rate}
 odi_plant <- merge_1
 
-yo <- a %>%
-  filter(ESTAB_NAME == "Flowers Bakery of Texarkana, LLC", Country == "Germany")
+# yo <- a %>%
+#   filter(ESTAB_NAME == "Flowers Bakery of Texarkana, LLC", Country == "Germany")
 #remove NAs and negative fdi
 
 
@@ -480,6 +480,9 @@ uni <- distinct(new, title_3.x, title_3.y)
 
 
 ```{r Quick Figs}
+library(ggrepel)
+
+#Inward FDI by Country
 fdi_all <- fdi 
 fdi_all$fdi <- as.numeric(fdi_all$fdi)
 fdi_all <- fdi_all %>%
@@ -491,17 +494,77 @@ fdi_avg <- fdi_all%>%
 
 fdi_avg <- arrange(fdi_avg, -avg)
 
+countries = list("Ireland", "United Kingdom", "Japan", "Netherlands", "Canada", "Mexico", "France", "Germany", "Switzerland", "Middle East")
+
+years <- seq(1998,2020,2)
+
 fdi_top <- fdi_all %>%
-  filter(Country %in% countries)
+  filter(Country %in% countries) %>%
+  mutate(label = if_else(Year == max(Year), as.character(Country), NA_character_))
   # filter(Country == c("China", "United Kingdom", "Japan", "Netherlands", "Canada", "Mexico", "France", "Germany", "Switzerland", "Middle East"))
 
-countries = list("China", "United Kingdom", "Japan", "Netherlands", "Canada", "Mexico", "France", "Germany", "Switzerland", "Middle East")
 
-inward_fdi <- ggplot(fdi_top, aes(x = Year, y = fdi, group = Country, color = Country)) + geom_line()
+
+inward_fdi <- ggplot(fdi_top, aes(x = Year, y = fdi, group = Country, color = Country)) +
+  geom_smooth(se = FALSE) +
+  geom_label_repel(aes(label = label),
+                   nudge_x = 1,
+                   na.rm = TRUE) +
+  scale_x_discrete(breaks = years) +
+  labs(title = "FDI into the US", x = "Year", y = "U.S. Inward FDI, Net Position in Millions of USD") +
+  theme(legend.position = "none")
 show(inward_fdi)
+ggsave("../Output/fdi_country.png")
 
+#Safety by country
+fdi_safety_all <- fdi_safety %>%
+  filter(title_3 == "All Industries Total")
+
+safety_avg <- fdi_safety_all %>%
+  group_by(Country) %>%
+  summarize(avg_inj = mean(rate, na.rm = TRUE))
+
+fdi_avg <- fdi_safety_all %>%
+  group_by(Country) %>%
+  summarize(avg_fdi = mean(fdi, na.rm = TRUE))
+
+country_avg <- merge(safety_avg, fdi_avg, by = "Country")
+
+inj_fdi_scatter <- ggplot(country_avg, aes(x = avg_fdi, y = avg_inj)) +
+  geom_point(size = 2, color = "blue") +
+  theme(aspect.ratio = 3/4) +
+  labs(title = "Source Country FDI vs. Injury Rates", x = "Average FDI, Millions of USD", y = "Average Injury rate per 100 workers")
+ggsave("../Output/inj_fdi_scatter.png")
+
+# inward_rates <- ggplot(fdi_safety_all, aes(x = Year, y = rate, group = Country, color = Country)) + geom_smooth(se = FALSE)
+# 
+# show(inward_rates)
+
+fdi_total_us <- fdi_ind %>%
+  filter(industry == "All Industries Total")
+
+fdi_total_us$fdi <- as.numeric(fdi_total_us$fdi)
+
+fdi_time <- ggplot(fdi_total_us, aes(x = year, y = fdi, group=1)) +
+  geom_line(color = "blue") + 
+  scale_x_discrete(breaks = years) +
+  theme(aspect.ratio = 3/4) +
+  labs(title = "FDI into the U.S.", y = "Total Net Inward FDI Position, Millions of USD", x = "Year")
+ggsave("../Output/fdi_time.png")
+
+#US injury rates over time
+inj_avg <- odi_matched %>%
+  group_by(Year) %>%
+  summarize(inj_avg = mean(tcr, na.rm = TRUE))
+
+inj_time <- ggplot(inj_avg, aes(x = as.character(Year), y = inj_avg, group = 1)) +
+  geom_line(size = 1, color = "red") +
+  scale_x_discrete(breaks = years) +
+  theme(aspect.ratio = 3/4) +
+  labs(title = "U.S. Workplace Injury Rates Over Time", x = "Year", y = "Average Total Case Rate (TCR)")
+
+  ggsave("../Output/inj_time.png")
 ```
-
 
 
 
