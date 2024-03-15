@@ -1,1 +1,1 @@
-This repository corresponds to the project "Does Business Culture Travel? The Case of Worker Safety", Austin Kennedy's sad attempt at a third year paper
+This repository corresponds to the project "Does Business Culture Travel? The Case of Worker Safety"

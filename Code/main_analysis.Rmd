@@ -25,6 +25,8 @@ odi_ind <- read.csv("../Temporary/odi_fdi.csv")
 fdi <- read.csv("../Temporary/fdi_country_year.csv")
 odi_sum <- read.csv("../Temporary/odi_sum.csv")
 odi_plant <- read.csv("../Temporary/odi_plant.csv")
+ind_year <- read.csv("../Temporary/industry_agg.csv")
+state_ind_year <- read.csv("../Temporary/state_industry_agg.csv")
 ```
 
 ```{r Industry-detailed regressions}
@@ -48,9 +50,9 @@ lmods <- list(lmod1, lmod2, lmod3, lmod4)
 ```
 
 ```{r Weighted Avg Regressions}
-wa_mod1 <- feols(tcr ~ log(fdi_tot) + log(weight_avg), odi_plant, cluster = c("Year", "naics_3"))
-wa_mod2 <- feols(tcr ~ log(fdi_tot) + log(weight_avg)|Year, odi_plant, cluster = c("Year", "naics_3"))
-wa_mod3 <- feols(tcr ~ log(fdi_tot) + log(weight_avg)|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
+wa_mod1 <- feols(tcr ~ log(fdi_tot)*weight_avg, odi_plant, cluster = c("Year", "naics_3"))
+wa_mod2 <- feols(tcr ~ log(fdi_tot)*weight_avg|Year, odi_plant, cluster = c("Year", "naics_3"))
+wa_mod3 <- feols(tcr ~ log(fdi_tot)*weight_avg|Year + naics_3, odi_plant, cluster = c("Year", "naics_3"))
 
 wa_models <- list(wa_mod1, wa_mod2, wa_mod3)
 ```
@@ -113,128 +115,231 @@ e_mod5 <- feols(tcr ~ exposed*log(weight_avg_l4)- exposed - log(weight_avg_l4)|Y
 
 e_models <- list(e_mod1, e_mod2, e_mod3, e_mod4, e_mod5)
 ```
+```{r Basic Aggregated Regs}
+agg_basic <- ind_year %>%
+  feols(tcr~log(fdi), cluster = c("NAICS"))
 
-```{r Industry tables}
+agg_basic_year <- ind_year %>%
+  feols(tcr ~ log(fdi)|Year, cluster = c("NAICS"))
 
-cm <- c("(Intercept)" = "Intercept", "log(fdi)" = "$ln(FDI)$", "log(fdi_tot)" = "$ln(FDI)$")
+agg_basic_twoway <- ind_year %>%
+  feols(tcr ~ log(fdi)|Year + NAICS, cluster = c('NAICS'))
 
-cap <- "Dependent variable: Total Case Rate (TCR)"
-
-gm <- tribble(~raw, ~clean, ~fmt,
-              "FE: Year", "Year FE", "%.4f",
-              "FE: naics_3", "Industry FE", "%.4f",
-              "FE: industry", "Industry FE", "%.4f",
-              "nobs", "Observations", "%.0f",
-              "r.squared", "R2", "%.2f")
-
-fn <- "Standard Errors clustered at the Year-Industry level."
-
-tab_ind <- modelsummary(ind_models,
-             stars = TRUE,
-             coef_map = cm,
-             title = cap,
-             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
-             gof_map = gm,
-             # coef_omit = "Intercept",
-             output = "latex",
-             escape = FALSE,
-             fmt = "%.4f") %>%
-  add_header_above(c("Full Sample" = 4, "Source-Country Sample" = 2)) %>%
-  add_footnote(fn, threeparttable = TRUE)
-                        
-kableExtra::save_kable(tab_ind, file = "../Output/table_ind.tex")
+agg_basic_regs <- list(agg_basic, agg_basic_year, agg_basic_twoway)
+etable(basic_regs)
 ```
 
-```{r Summation models}
-cm <- c("(Intercept)" = "Intercept", "log(fdi_tot)" = "$ln( \\sum_{c \\in C}FDI_{jtc})$", "log(int_sum)" = "$ln( \\sum_{c \\in C} (FDI_{jtc} \\times Inj_{ct}))$")
+```{r aggregated regs safety interaction: industry}
+agg_ind <- ind_year %>%
+  feols(tcr ~ safe*log(fdi), cluster = c('NAICS'))
 
-cap <- "Dependent variable: Total Case Rate (TCR)"
+agg_ind_year <- ind_year %>%
+  feols(tcr ~ safe*log(fdi)|Year, cluster = c('NAICS'))
 
-gm <- tribble(~raw, ~clean, ~fmt,
-              "FE: Year", "Year FE", "%.4f",
-              "FE: naics_3", "Industry FE", "%.4f",
-              "FE: industry", "Industry FE", "%.4f",
-              "nobs", "Observations", "%.0f",
-              "r.squared", "R2", "%.2f")
+agg_ind_twoway <- ind_year %>%
+  feols(tcr ~ safe*log(fdi)|Year+NAICS, cluster = c('NAICS'))
 
-fn <- "Standard Errors clustered at the Year-Industry level."
+# agg_model_state <- state_ind_year %>%
+#   feols(tcr ~ safe*log(fdi), cluster = c('STATE','NAICS'))
 
-tab_sum <- modelsummary(s_models,
-             stars = TRUE,
-             coef_map = cm,
-             title = cap,
-             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
-             gof_map = gm,
-             # coef_omit = "Intercept",
-             output = "latex",
-             escape = FALSE,
-             fmt = "%.4f") %>%
-  # add_header_above(c("Full Sample" = 3, "Source-Country Sample" = 2)
-                   # ) %>%
-  add_footnote(fn, threeparttable = TRUE)
-                        
-kableExtra::save_kable(tab_sum, file = "../Output/table_sum.tex")
+agg_ind_regs <- list(agg_ind, agg_ind_year, agg_ind_twoway)
+
+etable(agg_ind_regs)
 ```
 
-```{r Weighted Average Table}
-cm <- c("(Intercept)" = "Intercept", "log(fdi_tot)" = "$FDI^{total}$", "log(weight_avg)" = "$Safety$")
+```{r safety interaction: state-level}
+agg_state <- state_ind_year %>%
+  feols(tcr ~ safe*log(fdi), cluster = c('STATE','NAICS'))
 
-cap <- "Dependent variable: Total Case Rate (TCR)"
+agg_state_year <- state_ind_year %>%
+  feols(tcr ~ safe*log(fdi)|Year, cluster = c('STATE','NAICS'))
 
-gm <- tribble(~raw, ~clean, ~fmt,
-              "FE: Year", "Year FE", "%.4f",
-              "FE: naics_3", "Industry FE", "%.4f",
-              "FE: industry", "Industry FE", "%.4f",
-              "nobs", "Observations", "%.0f",
-              "r.squared", "R2", "%.2f")
+agg_state_twoway <- state_ind_year %>%
+  feols(tcr ~ safe*log(fdi)|Year+NAICS, cluster = c('STATE','NAICS'))
 
-fn <- "Standard Errors clustered at the Year-Industry level."
+agg_state_threeway <- state_ind_year %>%
+  feols(tcr ~ safe*log(fdi)|Year+NAICS+STATE, cluster = c('STATE','NAICS'))
 
-tab_wa <- modelsummary(wa_models,
-             stars = TRUE,
-             coef_map = cm,
-             title = cap,
-             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
-             gof_map = gm,
-             # coef_omit = "Intercept",
-             output = "latex",
-             escape = FALSE,
-             fmt = "%.4f") %>%
-  # add_header_above(c("Full Sample" = 3, "Source-Country Sample" = 2)
-                   # ) %>%
-  add_footnote(fn, threeparttable = TRUE)
-                        
-kableExtra::save_kable(tab_wa, file = "../Output/table_wa.tex")
+agg_state_models <- list(agg_state, agg_state_year, agg_state_twoway, agg_state_threeway)
+
+etable(agg_state_models)
+
+```
+```{r Basic regs with safety shares}
+basic_shares <- ind_year %>%
+  feols(tcr~safe_share*log(fdi), cluster = c('NAICS'))
+
+basic_shares_time <- ind_year %>%
+  feols(tcr~safe_share*log(fdi)|Year, cluster = c('NAICS'))
+
+basic_shares_twoway <- ind_year %>%
+  feols(tcr~safe_share*log(fdi)|Year + NAICS, cluster = c('NAICS'))
+
+basic_shares_regs <- list(basic_shares, basic_shares_time, basic_shares_twoway)
+
+etable(basic_shares_regs)
 ```
 
-```{r FDI-exposed table}
-cm <- c("(Intercept)" = "Intercept", "exposed:log(weight_avg)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l1)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l2)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l3)" = "$Exposed \\times Safety", "exposed:log(weight_avg_l4)" = "$Exposed \\times Safety")
 
-cap <- "Dependent variable: Total Case Rate (TCR)"
+```{r Aggregated regs with safety shares:industry}
+agg_ind_shares <- ind_year %>%
+  feols(tcr ~ safe*safe_share, cluster = c('NAICS'))
 
+agg_ind_shares_year <- ind_year %>%
+  feols(tcr ~ safe*safe_share|Year, cluster = c('NAICS'))
+
+agg_ind_shares_twoway <- ind_year %>%
+  feols(tcr ~ safe*safe_share|Year+NAICS, cluster = c('NAICS'))
+
+agg_ind_shares_fdi <- ind_year %>%
+  feols(tcr ~ safe*safe_share + log(fdi), cluster = c('NAICS'))
+
+agg_ind_shares_year_fdi <- ind_year %>%
+  feols(tcr ~ safe*safe_share + log(fdi)|Year, cluster = c('NAICS'))
+
+agg_ind_shares_twoway_fdi <- ind_year %>%
+  feols(tcr ~ safe*safe_share + log(fdi)|Year+NAICS, cluster = c('NAICS'))
+
+agg_ind_shares_models <- list(agg_ind_shares, agg_ind_shares_year, agg_ind_shares_twoway, agg_ind_shares_fdi, agg_ind_shares_year_fdi, agg_ind_shares_twoway_fdi)
+
+etable(agg_ind_shares_models)
+```
+
+```{r Aggregated regs with safety shares:state}
+agg_state_shares <- ind_year %>%
+  feols(tcr ~ safe*safe_share, cluster = c('NAICS'))
+
+agg_state_shares_year <- ind_year %>%
+  feols(tcr ~ safe*safe_share|Year, cluster = c('NAICS'))
+
+agg_state_shares_twoway <- ind_year %>%
+  feols(tcr ~ safe*safe_share|Year+NAICS, cluster = c('NAICS'))
+
+agg_state_shares_fdi <- ind_year %>%
+  feols(tcr ~ safe*safe_share + log(fdi), cluster = c('NAICS'))
+
+agg_state_shares_year_fdi <- ind_year %>%
+  feols(tcr ~ safe*safe_share + log(fdi)|Year, cluster = c('NAICS'))
+
+agg_state_shares_twoway_fdi <- ind_year %>%
+  feols(tcr ~ safe*safe_share + log(fdi)|Year+NAICS, cluster = c('NAICS'))
+
+agg_state_shares_models <- list(agg_state_shares, agg_state_shares_year, agg_state_shares_twoway, agg_state_shares_fdi, agg_state_shares_year_fdi, agg_state_shares_twoway_fdi)
+
+etable(agg_ind_shares_models)
+```
+#####Tables
+
+```{r Global Table Stuff}
+gf_omitted <- "R2 Within|R2 P|Log|AIC|BIC|Std"
+star_map = c('*' = .1, '**' = 0.05, '***' = 0.01)
 gm <- tribble(~raw, ~clean, ~fmt,
               "FE: Year", "Year FE", "%.4f",
-              "FE: industry.y", "Industry FE", "%.4f",
+              "FE: NAICS", "Industry FE", "%.4f",
+              "FE: STATE", "State FE", "%.4f",
               "nobs", "Observations", "%.0f",
               "r.squared", "R2", "%.2f")
 
-fn <- "Standard Errors clustered at the Year-Industry level."
+cm <- c("(Intercept)" = "Intercept",
+        "log(fdi)" = "$ln(FDI)$",
+        "safe" = "$Safe$",
+        "safe:log(fdi)" = "$Safe \\times ln(FDI)$",
+        "safe_share" = "$Share^{Safe FDI}$",
+        "safe:safe_share" = "$Safe \\times Share^{Safe FDI}$")
 
-tab_e <- modelsummary(e_models,
-             stars = TRUE,
-             coef_map = cm,
-             title = cap,
-             gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
-             gof_map = gm,
-             # coef_omit = "Intercept",
-             output = "latex",
-             escape = FALSE,
-             fmt = "%.4f") %>%
-  add_header_above(c(" " = 1, "t = 0" = 1, "t = -1" = 1, "t = -2" = 1, "t = -3" = 1, "t = -4" = 1)
-  ) %>%
+```
+
+```{r Basic regs Table}
+fn <- "Standard errors clustered at the industry level."
+
+tab_basic_regs <- modelsummary(basic_regs,
+                               stars = star_map,
+                               coef_map = cm,
+                               title = "Dependent variable: Total Case Rate (TCR)",
+                               gof_map = gm,
+                               output = "latex",
+                               escape = FALSE,
+                               fmt = "%.4f") %>%
   add_footnote(fn, threeparttable = TRUE)
-                        
-kableExtra::save_kable(tab_e, file = "../Output/table_e.tex")
+
+kableExtra::save_kable(tab_basic_regs, file = "../Output/reg_tables/basic_regs.tex")
+```
+
+```{r Industry-level safety interaction table}
+fn <- "Standard errors clustered at the industry level."
+
+cm <- c("(Intercept)" = "Intercept",
+        "log(fdi)" = "$ln(FDI)$",
+        "safe" = "$SafeIndustry$",
+        "safe:log(fdi)" = "$SafeIndustry \\times ln(FDI)$")
+
+tab_agg_ind <- modelsummary(agg_ind_regs,
+                               stars = star_map,
+                               coef_map = cm,
+                               title = "Dependent variable: Total Case Rate (TCR)",
+                               gof_map = gm,
+                               output = "latex",
+                               escape = FALSE,
+                               fmt = "%.4f") %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(tab_agg_ind, file = "../Output/reg_tables/agg_industry_safety.tex")
+```
+
+```{r State-level safety interaction table}
+fn <- "Standard errors clustered at the industry-state level."
+
+cm <- c("(Intercept)" = "Intercept",
+        "log(fdi)" = "$ln(FDI)$",
+        "safe" = "$SafeState$",
+        "safe:log(fdi)" = "$SafeState \\times ln(FDI)$")
+
+agg_state_tab <- modelsummary(agg_state_models,
+                               stars = star_map,
+                               coef_map = cm,
+                               title = "Dependent variable: Total Case Rate (TCR)",
+                               gof_map = gm,
+                               output = "latex",
+                               escape = FALSE,
+                               fmt = "%.4f") %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(agg_state_tab, file = "../Output/reg_tables/agg_state_safety.tex")
+```
+
+```{r Industry-level shares table}
+fn <- "Standard errors clustered at the industry level."
+
+agg_ind_shares_tab <- modelsummary(agg_ind_shares_models,
+                               stars = star_map,
+                               coef_map = cm,
+                               title = "Dependent variable: Total Case Rate (TCR)",
+                               gof_map = gm,
+                               output = "latex",
+                               escape = FALSE,
+                               fmt = "%.4f") %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(agg_ind_shares_tab, file = "../Output/reg_tables/industry_safety_shares.tex")
+```
+
+```{r State-level shares table}
+fn <- "Standard errors clustered at the industry level."
+
+agg_state_shares_tab <- modelsummary(agg_state_shares_models,
+                               stars = star_map,
+                               coef_map = cm,
+                               title = "Dependent variable: Total Case Rate (TCR)",
+                               gof_map = gm,
+                               output = "latex",
+                               escape = FALSE,
+                               fmt = "%.4f") %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(agg_state_shares_tab, file = "../Output/reg_tables/state_safety_shares.tex")
+```
+
+```{r}
 ```
 
 

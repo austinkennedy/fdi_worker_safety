@@ -186,9 +186,17 @@ fdi_ind_matched <- fdi_ind_matched %>%
 #Make country-level fdi data as long as possible
 # fdi <- fdi %>% pivot_longer(-c("title_2", "title_3","code", "Year"), names_to = "Country", values_to = "fdi") #Wide to long
 #Convert country safety to per 100 instead of 100,000 for comparisons
-country_safety$rate <- country_safety$rate / 1000
 
-fdi_safety <- merge(fdi, country_safety[,c("rate","Country", "Year")], by = c("Country", "Year"))
+
+country_safety$inj_per100 <- country_safety$rate / 1000
+
+country_safety <- country_safety %>%
+  group_by(Year) %>%
+  mutate(us_inj = ifelse(any(Country == "United States"), inj_per100[Country == "United States"], NA)) %>%
+  ungroup() %>%
+  mutate(safe_source = ifelse(inj_per100 <= us_inj, 1, 0))
+
+fdi_safety <- merge(fdi, country_safety, by = c("Country", "Year"))
 
 fdi_safety$fdi <- as.numeric(fdi_safety$fdi)
 fdi_safety <- fdi_safety[!is.na(fdi_safety$fdi),]
@@ -270,6 +278,70 @@ write.csv(odi_matched, "../Temporary/odi_fdi.csv", row.names = FALSE)
 
 ```
 
+###INDUSTRY-LEVEL AGGREGATION AND SAFETY
+```{r Create Baseline Safe/Unsafe}
+us_safety <- odi %>%
+  filter(Year == 2003) %>%
+  summarize(mean(tcr)) %>%
+  as.numeric()
+
+industry_safety <- odi %>%
+  filter(Year == 2003) %>%
+  group_by(NAICS) %>%
+  summarize(tcr_avg = mean(tcr)) %>%
+  mutate(safe = ifelse(tcr_avg <= us_safety, 1, 0))
+
+state_safety <- odi %>%
+  filter(Year == 2003) %>%
+  group_by(STATE) %>%
+  summarize(tcr_avg = mean(tcr)) %>%
+  mutate(safe = ifelse(tcr_avg <= us_safety, 1, 0))
+```
+
+```{r Create safe, unsafe FDI, relative to the US}
+fdi_safe <- fdi_safety %>%
+  group_by(Year, code) %>%
+  filter(safe_source == 1) %>%
+  summarize(fdi_safe = sum(fdi, na.rm=TRUE))
+
+fdi_unsafe <- fdi_safety %>%
+  group_by(Year, code) %>%
+  filter(safe_source == 0) %>%
+  summarize(fdi_unsafe = sum(fdi, na.rm=TRUE))
+
+fdi_safety_shares <- inner_join(fdi_safe, fdi_unsafe, by = c("Year","code")) %>%
+  mutate(fdi_total = fdi_safe+fdi_unsafe) %>%
+  mutate(safe_share = (fdi_safe/fdi_total)*100) %>%
+  filter(safe_share >= 0)
+
+fdi_safety_shares$Year <- as.integer(fdi_safety_shares$Year)
+```
+
+```{r Retrieve industry x year fdi from odi data}
+fdi_ind_year <- unique(odi_matched[,c('NAICS','naics_3', 'Year', 'fdi')])
+fdi_ind_year$naics_3 <- as.character(fdi_ind_year$naics_3)
+```
+
+```{r Aggregate industry-year and merge fdi}
+ind_year <- odi %>%
+  group_by(NAICS, Year) %>%
+  summarize(tcr = mean(tcr)) %>%
+  left_join(industry_safety[,c('NAICS', 'safe')], by = c('NAICS')) %>%
+  left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
+  left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
+
+state_ind_year <- odi %>%
+  group_by(NAICS, Year, STATE) %>%
+  summarize(tcr = mean(tcr)) %>%
+  left_join(state_safety[, c('STATE', 'safe')], by = c('STATE')) %>%
+  left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
+  left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
+```
+
+```{r Export}
+write.csv(ind_year, '../Temporary/industry_agg.csv')
+write.csv(state_ind_year, '../Temporary/state_industry_agg.csv')
+```
 
 
 ```{r Merge odi and fdi_safety}
@@ -288,7 +360,7 @@ us_safety <- country_safety %>%
 
 merge_1 <- merge(merge_1, us_safety[, c("rate", "Year")], by = "Year")
 
-merge_1 <- rename(merge_1, inj_us = rate.y)
+merge_1 <- rename(merge_1,  inj_us = rate.y)
 merge_1 <- rename(merge_1, inj_foreign = rate.x)
 merge_1$fdi <- as.numeric(merge_1$fdi)
 
