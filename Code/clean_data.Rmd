@@ -289,13 +289,13 @@ industry_safety <- odi %>%
   filter(Year == 2003) %>%
   group_by(NAICS) %>%
   summarize(tcr_avg = mean(tcr)) %>%
-  mutate(safe = ifelse(tcr_avg <= us_safety, 1, 0))
+  mutate(safe_industry = ifelse(tcr_avg <= us_safety, 1, 0))
 
 state_safety <- odi %>%
   filter(Year == 2003) %>%
   group_by(STATE) %>%
   summarize(tcr_avg = mean(tcr)) %>%
-  mutate(safe = ifelse(tcr_avg <= us_safety, 1, 0))
+  mutate(safe_state = ifelse(tcr_avg <= us_safety, 1, 0))
 ```
 
 ```{r Create safe, unsafe FDI, relative to the US}
@@ -326,14 +326,14 @@ fdi_ind_year$naics_3 <- as.character(fdi_ind_year$naics_3)
 ind_year <- odi %>%
   group_by(NAICS, Year) %>%
   summarize(tcr = mean(tcr)) %>%
-  left_join(industry_safety[,c('NAICS', 'safe')], by = c('NAICS')) %>%
+  left_join(industry_safety[,c('NAICS', 'safe_industry')], by = c('NAICS')) %>%
   left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
   left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
 
 state_ind_year <- odi %>%
   group_by(NAICS, Year, STATE) %>%
   summarize(tcr = mean(tcr)) %>%
-  left_join(state_safety[, c('STATE', 'safe')], by = c('STATE')) %>%
+  left_join(state_safety[, c('STATE', 'safe_state')], by = c('STATE')) %>%
   left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
   left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
 ```
