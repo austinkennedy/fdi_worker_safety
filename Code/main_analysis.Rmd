@@ -160,6 +160,11 @@ agg_state_twoway <- state_ind_year %>%
 agg_state_threeway <- state_ind_year %>%
   feols(tcr ~ safe_state*log(fdi)|Year+NAICS+STATE, cluster = c('STATE','NAICS'))
 
+agg_ind_state <- state_ind_year %>%
+  feols(tcr ~ safe_state*safe_industry*log(fdi)|Year+NAICS+STATE, cluster = c('STATE', 'NAICS'))
+
+etable(agg_ind_state)
+
 agg_state_models <- list(agg_state, agg_state_year, agg_state_twoway, agg_state_threeway)
 
 etable(agg_state_models)
@@ -173,12 +178,12 @@ basic_shares_time <- ind_year %>%
   feols(tcr~safe_share*log(fdi)|Year, cluster = c('NAICS'))
 
 basic_shares_twoway <- ind_year %>%
-  feols(tcr~safe_share|Year + NAICS, cluster = c('NAICS'))
+  feols(tcr~safe_share + log(fdi)|Year + NAICS, cluster = c('NAICS'))
 
-basic_shares_twoway_fdi <- ind_year %>%
+basic_shares_twoway_interaction <- ind_year %>%
   feols(tcr~safe_share*log(fdi)|Year + NAICS, cluster = c('NAICS'))
 
-basic_shares_regs <- list(basic_shares, basic_shares_time, basic_shares_twoway)
+basic_shares_regs <- list(basic_shares, basic_shares_time, basic_shares_twoway, basic_shares_twoway_interaction)
 
 etable(basic_shares_regs)
 ```
@@ -201,7 +206,7 @@ agg_ind_shares_year_fdi <- ind_year %>%
   feols(tcr ~ safe_industry*safe_share + log(fdi)|Year, cluster = c('NAICS'))
 
 agg_ind_shares_twoway_fdi <- ind_year %>%
-  feols(tcr ~ safe_industry*safe_share + log(fdi)|Year+NAICS, cluster = c('NAICS'))
+  feols(tcr ~ safe_industry*safe_share + log(fdi)*safe_share|Year+NAICS, cluster = c('NAICS'))
 
 agg_ind_shares_models <- list(agg_ind_shares, agg_ind_shares_year, agg_ind_shares_twoway, agg_ind_shares_fdi, agg_ind_shares_year_fdi, agg_ind_shares_twoway_fdi)
 
@@ -222,10 +227,13 @@ agg_state_shares_fdi <- state_ind_year %>%
   feols(tcr ~ safe_state*safe_share + log(fdi), cluster = c('NAICS'))
 
 agg_state_shares_year_fdi <- state_ind_year %>%
-  feols(tcr ~ safe_state*safe_share + log(fdi)|Year, cluster = c('NAICS'))
+  feols(tcr ~ safe_state*safe_share + log(fdi)|Year, cluster = c('NAICS', 'STATE'))
 
 agg_state_shares_twoway_fdi <- state_ind_year %>%
-  feols(tcr ~ safe_state*safe_share + log(fdi)|Year+NAICS, cluster = c('NAICS'))
+  feols(tcr ~ safe_state*safe_share + log(fdi)*safe_share|Year+NAICS+STATE, cluster = c('NAICS', 'STATE'))
+
+agg_ind_state_share_twoway_fdi<- state_ind_year %>%
+  feols(tcr ~ safe_state*safe_industry*safe_share + log(fdi)*safe_share|Year+NAICS+STATE, cluster = c('NAICS', 'STATE'))
 
 agg_state_shares_models <- list(agg_state_shares, agg_state_shares_year, agg_state_shares_twoway, agg_state_shares_fdi, agg_state_shares_year_fdi, agg_state_shares_twoway_fdi)
 
@@ -252,7 +260,9 @@ cm <- c("(Intercept)" = "Intercept",
         "safe_share" = "$Share^{Safe FDI}$",
         "safe_share:log(fdi)" = "$ln(FDI) \\times Share^{Safe FDI}$",
         "safe_industry:safe_share" = "$SafeIndustry \\times Share^{Safe FDI}$",
-        "safe_state:safe_share" = "$SafeState \\times Share^{Safe FDI}$")
+        "safe_state:safe_share" = "$SafeState \\times Share^{Safe FDI}$",
+        "safe_state:safe_industry:log(fdi)" = "$SafeIndustry \\times SafeState \\times ln(FDI)$",
+        "safe_state:safe_industry:safe_share" = "$SafeIndustry \\times SafeState \\times Share^{Safe FDI}$")
 
 ```
 
@@ -304,6 +314,26 @@ agg_state_tab <- modelsummary(agg_state_models,
 kableExtra::save_kable(agg_state_tab, file = "../Output/reg_tables/agg_state_safety.tex")
 ```
 
+```{r full safety interaction table}
+interaction_models <- list(agg_ind_year, agg_ind_twoway, agg_state_year, agg_state_twoway, agg_state_threeway, agg_ind_state)
+
+fn <- "Standard errors clustered at the industry level columns (1) and (2), clustered at the industry-state level for columns (3) through (6)."
+
+agg_interaction_tab <- modelsummary(interaction_models,
+                               stars = star_map,
+                               coef_map = cm,
+                               title = "Dependent variable: Total Case Rate (TCR)",
+                               gof_map = gm,
+                               output = "latex",
+                               escape = FALSE,
+                               fmt = "%.4f") %>%
+  add_header_above(c(" " = 1, "Industry-Level" = 2, "State-Level" = 4)) %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(agg_interaction_tab, file = "../Output/reg_tables/agg_interaction.tex")
+
+```
+
 ```{r Industry-level shares table}
 fn <- "Standard errors clustered at the industry level."
 
@@ -337,9 +367,9 @@ kableExtra::save_kable(agg_state_shares_tab, file = "../Output/reg_tables/state_
 ```
 
 ```{r Full shares table}
-shares_models <- list(basic_shares_twoway, basic_shares_twoway_fdi, agg_ind_shares_twoway, agg_ind_shares_twoway_fdi, agg_state_shares_twoway, agg_state_shares_twoway_fdi)
+shares_models <- list(basic_shares_twoway, basic_shares_twoway_interaction, agg_ind_shares_twoway_fdi, agg_state_shares_twoway_fdi, agg_ind_state_share_twoway_fdi)
 
-fn <- "Standard errors clustered at the industry level columns (1) through (4), clustered at the industry-state level for columns (5) and (6)."
+fn <- "Standard errors clustered at the industry level columns (1) through (3), clustered at the industry-state level for column (4)."
 
 agg_state_shares_tab <- modelsummary(shares_models,
                                stars = star_map,
@@ -349,6 +379,7 @@ agg_state_shares_tab <- modelsummary(shares_models,
                                output = "latex",
                                escape = FALSE,
                                fmt = "%.4f") %>%
+  add_header_above(c(" " = 1, "Industry-Level" = 3, "State-Level" = 2)) %>%
   add_footnote(fn, threeparttable = TRUE)
 
 kableExtra::save_kable(agg_state_shares_tab, file = "../Output/reg_tables/shares_table.tex")

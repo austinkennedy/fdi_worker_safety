@@ -334,6 +334,7 @@ state_ind_year <- odi %>%
   group_by(NAICS, Year, STATE) %>%
   summarize(tcr = mean(tcr)) %>%
   left_join(state_safety[, c('STATE', 'safe_state')], by = c('STATE')) %>%
+  left_join(industry_safety[,c('NAICS', 'safe_industry')], by = c('NAICS')) %>%
   left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
   left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
 ```
