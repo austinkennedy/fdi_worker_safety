@@ -291,6 +291,12 @@ industry_safety <- odi %>%
   summarize(tcr_avg = mean(tcr)) %>%
   mutate(safe_industry = ifelse(tcr_avg <= us_safety, 1, 0))
 
+# industry_safety_source <- odi %>%
+#   filter(Year == 2003) %>%
+#   group_by(naics_3) %>%
+#   summarize(tcr_avg = mean(tcr)) %>%
+#   mutate(safe_industry = ifelse(tcr_avg <= us_safety, 1, 0))
+
 state_safety <- odi %>%
   filter(Year == 2003) %>%
   group_by(STATE) %>%
@@ -320,6 +326,8 @@ fdi_safety_shares$Year <- as.integer(fdi_safety_shares$Year)
 ```{r Retrieve industry x year fdi from odi data}
 fdi_ind_year <- unique(odi_matched[,c('NAICS','naics_3', 'Year', 'fdi')])
 fdi_ind_year$naics_3 <- as.character(fdi_ind_year$naics_3)
+# odi$naics_3 <- as.character(odi$naics_3)
+# industry_safety_source$naics_3 <- as.character(industry_safety_source$naics_3)
 ```
 
 ```{r Aggregate industry-year and merge fdi}
@@ -328,7 +336,13 @@ ind_year <- odi %>%
   summarize(tcr = mean(tcr)) %>%
   left_join(industry_safety[,c('NAICS', 'safe_industry')], by = c('NAICS')) %>%
   left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
-  left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
+  left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share', 'fdi_total')], by = c("naics_3" = "code", 'Year'))
+
+# ind_year_source <- odi %>%
+#   group_by(naics_3, Year) %>%
+#   summarize(tcr = mean(tcr)) %>%
+#   left_join(industry_safety_source[,c('naics_3', 'safe_industry')], by = c('naics_3')) %>%
+#   left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share', 'fdi_total')], by = c("naics_3" = "code", 'Year'))
 
 state_ind_year <- odi %>%
   group_by(NAICS, Year, STATE) %>%
@@ -336,7 +350,7 @@ state_ind_year <- odi %>%
   left_join(state_safety[, c('STATE', 'safe_state')], by = c('STATE')) %>%
   left_join(industry_safety[,c('NAICS', 'safe_industry')], by = c('NAICS')) %>%
   left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
-  left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share')], by = c("naics_3" = "code", 'Year'))
+  left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share', 'fdi_total')], by = c("naics_3" = "code", 'Year'))
 ```
 
 ```{r Export}
