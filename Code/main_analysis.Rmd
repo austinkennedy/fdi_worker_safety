@@ -183,7 +183,7 @@ basic_shares_twoway <- ind_year %>%
 basic_shares_twoway_interaction <- ind_year %>%
   feols(tcr~safe_share*log(fdi_total)|Year + NAICS, cluster = c('NAICS'))
 
-basic_shares_regs <- list(basic_shares, basic_shares_time, basic_shares_twoway, basic_shares_twoway_interaction)
+basic_shares_regs <- list(basic_shares_twoway, basic_shares_twoway_interaction)
 
 etable(basic_shares_regs)
 ```
@@ -259,7 +259,7 @@ cm <- c("(Intercept)" = "Intercept",
         "safe_state" = "$SafeState$",
         "safe_state:log(fdi)" = "$SafeState \\times ln(FDI)$",
         "safe_share" = "$Share^{Safe FDI}$",
-        "safe_share:log(fdi)" = "$ln(FDI) \\times Share^{Safe FDI}$",
+        "safe_share:log(fdi_total)" = "$ln(FDI) \\times Share^{Safe FDI}$",
         "safe_industry:safe_share" = "$SafeIndustry \\times Share^{Safe FDI}$",
         "safe_state:safe_share" = "$SafeState \\times Share^{Safe FDI}$",
         "safe_state:safe_industry" = "$SafeIndustry \\times SafeState$",
@@ -337,6 +337,23 @@ kableExtra::save_kable(agg_interaction_tab, file = "../Output/reg_tables/agg_int
 etable(interaction_models)
 
 ```
+```{r Basic Shares Table}
+fn <- "Standard errors clustered at the industry level."
+
+basic_shares_tab <- modelsummary(basic_shares_regs,
+                                 stars = star_map,
+                                 coef_map = cm,
+                                 title = "Dependent Variable: Total Case Rate (TCR)",
+                                 gof_map = gm,
+                                 output = 'latex',
+                                 escape = FALSE,
+                                 fmt = '%.4f') %>%
+  add_footnote(fn, threeparttable = TRUE)
+
+kableExtra::save_kable(basic_shares_tab, file = '../Output/reg_tables/basic_shares.tex')
+```
+
+
 
 ```{r Industry-level shares table}
 fn <- "Standard errors clustered at the industry level."
