@@ -171,12 +171,12 @@ fdi_ind_matched$code <- as.numeric(fdi_ind_matched$code)
 fdi_ind_matched$year <- as.numeric(fdi_ind_matched$year)
 
 #Create lagged FDI
-fdi_ind_matched <- fdi_ind_matched %>%
-  group_by(code) %>%
-  mutate(fdi_l1 = lag(fdi, n=1, order_by = year)) %>%
-  mutate(fdi_l2 = lag(fdi, n=2, order_by = year)) %>%
-  mutate(fdi_l3 = lag(fdi, n=3, order_by = year)) %>%
-  mutate(fdi_l4 = lag(fdi, n=4, order_by = year))
+# fdi_ind_matched <- fdi_ind_matched %>%
+#   group_by(code) %>%
+#   mutate(fdi_l1 = lag(fdi, n=1, order_by = year)) %>%
+#   mutate(fdi_l2 = lag(fdi, n=2, order_by = year)) %>%
+#   mutate(fdi_l3 = lag(fdi, n=3, order_by = year)) %>%
+#   mutate(fdi_l4 = lag(fdi, n=4, order_by = year))
 
 #Export fdi data
 # write.csv(fdi_ind_matched, "../Temporary/fdi_industry_year.csv")
@@ -194,7 +194,7 @@ country_safety <- country_safety %>%
   group_by(Year) %>%
   mutate(us_inj = ifelse(any(Country == "United States"), inj_per100[Country == "United States"], NA)) %>%
   ungroup() %>%
-  mutate(safe_source = ifelse(inj_per100 <= us_inj, 1, 0))
+  mutate(safe_source_us = ifelse(inj_per100 <= us_inj, 1, 0))
 
 fdi_safety <- merge(fdi, country_safety, by = c("Country", "Year"))
 
@@ -204,16 +204,16 @@ fdi_safety <- fdi_safety[!(fdi_safety<0),]
 fdi_safety <- fdi_safety[!is.na(fdi_safety$rate),]
 
 #create lags
-fdi_safety <- fdi_safety %>%
-  group_by(Country, code) %>%
-  mutate(fdi_l1 = lag(fdi, n=1, order_by = Year)) %>%
-  mutate(rate_l1 = lag(rate, n=1, order_by = Year)) %>%
-  mutate(fdi_l2 = lag(fdi, n=2, order_by = Year)) %>%
-  mutate(rate_l2 = lag(rate, n=2, order_by = Year)) %>%
-  mutate(fdi_l3 = lag(fdi, n=3, order_by = Year)) %>%
-  mutate(rate_l3 = lag(rate, n=3, order_by = Year)) %>%
-  mutate(fdi_l4 = lag(fdi, n=4, order_by = Year)) %>%
-  mutate(rate_l4 = lag(rate, n=4, order_by = Year))
+# fdi_safety <- fdi_safety %>%
+#   group_by(Country, code) %>%
+#   mutate(fdi_l1 = lag(fdi, n=1, order_by = Year)) %>%
+#   mutate(rate_l1 = lag(rate, n=1, order_by = Year)) %>%
+#   mutate(fdi_l2 = lag(fdi, n=2, order_by = Year)) %>%
+#   mutate(rate_l2 = lag(rate, n=2, order_by = Year)) %>%
+#   mutate(fdi_l3 = lag(fdi, n=3, order_by = Year)) %>%
+#   mutate(rate_l3 = lag(rate, n=3, order_by = Year)) %>%
+#   mutate(fdi_l4 = lag(fdi, n=4, order_by = Year)) %>%
+#   mutate(rate_l4 = lag(rate, n=4, order_by = Year))
 
 ```
 
@@ -288,8 +288,8 @@ us_safety <- odi %>%
 industry_safety <- odi %>%
   filter(Year == 2003) %>%
   group_by(NAICS) %>%
-  summarize(tcr_avg = mean(tcr)) %>%
-  mutate(safe_industry = ifelse(tcr_avg <= us_safety, 1, 0))
+  summarize(tcr_industry = mean(tcr)) %>%
+  mutate(safe_industry = ifelse(tcr_industry <= us_safety, 1, 0))
 
 # industry_safety_source <- odi %>%
 #   filter(Year == 2003) %>%
@@ -300,8 +300,8 @@ industry_safety <- odi %>%
 state_safety <- odi %>%
   filter(Year == 2003) %>%
   group_by(STATE) %>%
-  summarize(tcr_avg = mean(tcr)) %>%
-  mutate(safe_state = ifelse(tcr_avg <= us_safety, 1, 0))
+  summarize(tcr_state = mean(tcr)) %>%
+  mutate(safe_state = ifelse(tcr_state <= us_safety, 1, 0))
 ```
 
 ```{r Create safe, unsafe FDI, relative to the US}
@@ -351,6 +351,32 @@ state_ind_year <- odi %>%
   left_join(industry_safety[,c('NAICS', 'safe_industry')], by = c('NAICS')) %>%
   left_join(fdi_ind_year, by = c('NAICS', 'Year')) %>%
   left_join(fdi_safety_shares[,c('Year', 'code', 'safe_share', 'fdi_total')], by = c("naics_3" = "code", 'Year'))
+```
+
+```{r Safe share by state}
+odi$naics_3 <- as.character(odi$naics_3)
+
+state_safety_year <- odi %>%
+  group_by(Year, STATE) %>%
+  summarize(tcr_state = mean(tcr))
+
+ind_year_naics3 <- odi %>%
+  group_by(naics_3, Year) %>%
+  summarize(tcr_ind = mean(tcr))
+
+us_safety_year <- odi %>%
+  group_by(Year) %>%
+  summarize(tcr_us = mean(tcr))
+
+state_ind_naics3 <- odi %>%
+  group_by(naics_3, Year, STATE) %>%
+  summarize(tcr = mean(tcr)) %>%
+  left_join(state_safety_year, by = c('STATE', 'Year')) %>%
+  left_join(ind_year_naics3, by = c('naics_3', 'Year')) %>%
+  left_join(us_safety_year, by = 'Year') %>%
+  left_join(fdi_safety[,c('code', 'Year','Country','fdi', 'inj_per100')], by = c("naics_3" = "code", 'Year')) %>%
+  mutate(safe_source_industry = ifelse(inj_per100 <= tcr_ind, 1, 0),
+         safe_source_state = ifelse(inj_per100 <= tcr_state, 1, 0))
 ```
 
 ```{r Export}
