@@ -302,6 +302,16 @@ state_safety <- odi %>%
   group_by(STATE) %>%
   summarize(tcr_state = mean(tcr)) %>%
   mutate(safe_state = ifelse(tcr_state <= us_safety, 1, 0))
+
+###match full state names and export safe/unsafe states for appendix
+state_codes <- read.csv('../Input/states.csv')
+
+state_safety <- state_safety %>%
+  left_join(state_codes, by = c("STATE" = "Abbreviation")) %>%
+  arrange(desc(safe_state), STATE)
+
+write.csv(state_safety, '../output/state_safety.csv')
+
 ```
 
 ```{r Create safe, unsafe FDI, relative to the US}

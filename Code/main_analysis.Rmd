@@ -317,9 +317,9 @@ kableExtra::save_kable(agg_state_tab, file = "../Output/reg_tables/agg_state_saf
 ```
 
 ```{r full safety interaction table}
-interaction_models <- list(agg_ind_year, agg_ind_twoway, agg_state_year, agg_state_twoway, agg_state_threeway, agg_ind_state)
+interaction_models <- list(agg_basic_twoway, agg_ind_twoway, agg_state_twoway, agg_state_threeway, agg_ind_state)
 
-fn <- "Standard errors clustered at the industry level columns (1) and (2), clustered at the industry-state level for columns (3) through (6)."
+fn <- "Standard errors clustered at the industry level for columns (1) and (2), clustered at the industry-state level for columns (3) through (5). For columns (1) and (2), TCR is aggregated up to the industry-year level, with industries defined by 5-digit NAICS codes. For columns (3) through (5), the TCR is aggregated up to the industry-state-year level, again using the 5-digit NAICS industry classification."
 
 agg_interaction_tab <- modelsummary(interaction_models,
                                stars = star_map,
@@ -329,7 +329,7 @@ agg_interaction_tab <- modelsummary(interaction_models,
                                output = "latex",
                                escape = FALSE,
                                fmt = "%.4f") %>%
-  add_header_above(c(" " = 1, "Industry-Level" = 2, "State-Level" = 4)) %>%
+  add_header_above(c(" " = 1, "Industry-Level" = 2, "State-Level" = 3)) %>%
   add_footnote(fn, threeparttable = TRUE)
 
 kableExtra::save_kable(agg_interaction_tab, file = "../Output/reg_tables/agg_interaction.tex")
